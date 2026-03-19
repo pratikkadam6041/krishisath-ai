@@ -1,0 +1,148 @@
+.ai-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ai-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #E8F5E9 0%, #E0F2F1 100%);
+  padding: 16px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.ai-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0;
+}
+
+.ai-sparkle {
+  color: #FBC02D;
+  fill: #FBC02D;
+}
+
+.ai-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ai-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.highlight-card {
+  border: 2px solid var(--primary-color);
+}
+
+.secondary-card {
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.ai-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.ai-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-title h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.confidence-badge {
+  background-color: #F8FAFC;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  border: 1px solid #E2E8F0;
+}
+
+.ai-body {
+  margin-bottom: 24px;
+}
+
+.primary-action {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.ai-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background-color: #F8FAFC;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.ai-benefit span {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.ai-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-ai-primary {
+  flex: 2;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25);
+}
+
+.btn-ai-primary.outline {
+  flex: 1;
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  box-shadow: none;
+}
+
+.btn-ai-secondary {
+  flex: 1;
+  background-color: #F1F5F9;
+  color: var(--text-secondary);
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* Utilities inside card */
+.text-orange { color: #F57C00; }
+.text-blue { color: #1976D2; }
+.text-green { color: #388E3C; }
+.text-purple { color: #7B1FA2; }
