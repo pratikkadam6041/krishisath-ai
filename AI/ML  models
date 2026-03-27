@@ -1,0 +1,7 @@
+lstm_forecasting.h5 (The "Brain" for weather/moisture)
+
+ppo_agent.pt (The Reinforcement Learning policy)
+
+inference_script.py (The code that actually runs the model)
+
+requirements.txt (The specific libraries like tensorflow or torch)
