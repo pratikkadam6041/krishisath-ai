@@ -1,0 +1,33 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './i18n/index.js'; // initialize translations
+import './styles/global.css';
+import './styles/typography.css';
+import './styles/animations.css';
+
+async function clearDevServiceWorkers() {
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+
+  if ('caches' in window) {
+    const cacheKeys = await caches.keys();
+    await Promise.all(cacheKeys.map((cacheKey) => caches.delete(cacheKey)));
+  }
+}
+
+// Register Service Worker for PWA (Enabled in DEV for testing)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+
+    navigator.serviceWorker.register('/sw.js').catch((error) => {
+      console.log('SW registration failed: ', error);
+    });
+  });
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

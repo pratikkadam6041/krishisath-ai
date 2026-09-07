@@ -1,0 +1,41 @@
+{
+  "mqtt": {
+    "host": "broker.hivemq.com",
+    "port": 1883,
+    "client_id": "KrishiSarth-Pi4-Fertigation",
+    "keepalive": 30
+  },
+  "pins_bcm": {
+    "tank_a_relay": 5,
+    "tank_b_relay": 6,
+    "tank_c_relay": 13,
+    "water_relay": 19,
+    "flow_sensor": 17
+  },
+  "relay_active_low": true,
+  "tank_calibration_ml_per_second": {
+    "tankA": 1.8,
+    "tankB": 1.6,
+    "tankC": 1.7
+  },
+  "flow_sensor": {
+    "pulses_per_liter": 450,
+    "min_flow_lpm_alarm": 0.2,
+    "publish_interval_seconds": 1
+  },
+  "water_flush": {
+    "enabled": true,
+    "max_seconds": 180,
+    "settle_seconds_after_tanks": 3
+  },
+  "lcd": {
+    "enabled": true,
+    "i2c_address": "0x27",
+    "cols": 16,
+    "rows": 2
+  },
+  "safety": {
+    "max_tank_run_seconds": 180,
+    "max_total_run_seconds": 600
+  }
+}

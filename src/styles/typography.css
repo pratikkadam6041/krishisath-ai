@@ -1,0 +1,94 @@
+/* ============================================================
+   KrishiSarth AI — Typography
+   Noto Sans Devanagari + Inter
+   ============================================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+h1 { font-size: 24px; font-weight: 700; }
+h2 { font-size: 20px; font-weight: 700; }
+h3 { font-size: 18px; font-weight: 600; }
+h4 { font-size: 16px; font-weight: 600; }
+
+p, span, div {
+  font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+.text-heading    { font-size: 24px; font-weight: 700; line-height: 1.4; }
+.text-subheading { font-size: 18px; font-weight: 600; line-height: 1.5; }
+.text-body       { font-size: 16px; font-weight: 400; line-height: 1.6; }
+.text-small      { font-size: 14px; font-weight: 400; line-height: 1.5; }
+.text-xs         { font-size: 12px; font-weight: 400; line-height: 1.4; }
+
+/* Devanagari needs extra line height */
+[lang="mr"], .lang-mr, .devanagari {
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+/* Sensor value — large display */
+.sensor-value {
+  font-family: 'Inter', 'Noto Sans Devanagari', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  color: var(--color-text-primary);
+}
+.sensor-value-lg {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+}
+.sensor-unit {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* Section label */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+}
+
+/* Money / ROI — bold Indian format */
+.money-display {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Bottom nav label */
+.nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+/* Status text */
+.status-optimal  { color: var(--color-primary); }
+.status-low      { color: var(--color-accent); }
+.status-critical { color: var(--color-danger); }
+.status-high     { color: var(--color-water); }
+
+/* Truncate */
+.truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

@@ -1,0 +1,58 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGlow" x1="108" y1="84" x2="412" y2="432" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FFE8"/>
+      <stop offset="1" stop-color="#ECF8ED"/>
+    </linearGradient>
+    <linearGradient id="leafGreen" x1="124" y1="104" x2="390" y2="378" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9DDB5D"/>
+      <stop offset="0.48" stop-color="#2F8F3E"/>
+      <stop offset="1" stop-color="#173C1E"/>
+    </linearGradient>
+    <linearGradient id="grainGold" x1="264" y1="138" x2="392" y2="334" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD971"/>
+      <stop offset="0.55" stop-color="#E2A52D"/>
+      <stop offset="1" stop-color="#A86B12"/>
+    </linearGradient>
+    <linearGradient id="soilBrown" x1="158" y1="320" x2="352" y2="408" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#865217"/>
+      <stop offset="1" stop-color="#5A3511"/>
+    </linearGradient>
+    <filter id="softShadow" x="74" y="50" width="364" height="418" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="18"/>
+      <feGaussianBlur stdDeviation="18"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0745098 0 0 0 0 0.176471 0 0 0 0 0.101961 0 0 0 0.18 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="144" fill="url(#bgGlow)"/>
+
+  <g filter="url(#softShadow)">
+    <path d="M256 84C315.837 84 368.477 96.823 403.737 120.351C401.258 286.748 347.277 387.97 256 428C164.723 387.97 110.742 286.748 108.263 120.351C143.523 96.823 196.163 84 256 84Z" fill="white" fill-opacity="0.92"/>
+    <path d="M256 98C308.868 98 355.709 108.811 388.579 128.986C385.425 277.312 338.532 367.951 256 405.927C173.468 367.951 126.575 277.312 123.421 128.986C156.291 108.811 203.132 98 256 98Z" stroke="#9DCC59" stroke-width="14"/>
+
+    <path d="M154 334C176.497 306.28 206.329 292.42 243.497 292.42C273.439 292.42 309.274 307.613 351 338V370H161C151.059 370 146.829 358 154 334Z" fill="url(#soilBrown)"/>
+    <path d="M161 356C194.254 330.362 227.51 317.543 260.769 317.543C286.95 317.543 315.36 326.183 346 343.464V380H161V356Z" fill="#215D2A"/>
+
+    <path d="M250.632 156C282.358 184.233 298.219 217.205 298.219 254.918C298.219 282.76 289.851 314.605 273.116 350.453H241.773C227.053 315.123 219.693 283.278 219.693 254.918C219.693 217.205 230.006 184.233 250.632 156Z" fill="url(#leafGreen)"/>
+    <path d="M197.209 202.975C233.685 204.197 260.996 214.194 279.141 232.967C251.744 250.429 219.783 259.16 183.258 259.16C165.481 259.16 151.728 255.441 142 247.999C147.397 226.341 165.8 211.333 197.209 202.975Z" fill="url(#leafGreen)"/>
+    <path d="M315.307 201.754C346.716 210.111 365.119 225.119 370.516 246.778C360.788 254.22 347.035 257.939 329.258 257.939C292.732 257.939 260.771 249.208 233.375 231.746C251.52 212.973 278.831 202.975 315.307 201.754Z" fill="url(#grainGold)"/>
+
+    <path d="M326.5 145.5C348.22 145.5 366.296 151.167 380.727 162.5" stroke="url(#grainGold)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M309.5 168.5C331.22 168.5 349.296 174.167 363.727 185.5" stroke="url(#grainGold)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M292.5 191.5C314.22 191.5 332.296 197.167 346.727 208.5" stroke="url(#grainGold)" stroke-width="10" stroke-linecap="round"/>
+
+    <circle cx="287" cy="127" r="12" fill="#F4C94B"/>
+    <circle cx="340" cy="121" r="12" fill="#F4C94B"/>
+    <circle cx="365" cy="154" r="12" fill="#F4C94B"/>
+    <path d="M287 127C314.806 127 332.473 125 340 121" stroke="#E3B53C" stroke-width="7" stroke-linecap="round"/>
+    <path d="M340 121C350.198 123.418 358.531 134.418 365 154" stroke="#E3B53C" stroke-width="7" stroke-linecap="round"/>
+
+    <path d="M205 286C224.56 281.535 241.56 283.886 256 293.054C270.44 302.223 286.773 319.204 305 344" stroke="white" stroke-opacity="0.7" stroke-width="8" stroke-linecap="round"/>
+    <path d="M245 178C250.776 201.328 253.664 231.681 253.664 269.058C253.664 306.435 252.109 333.749 249 351" stroke="#F5FFF5" stroke-opacity="0.55" stroke-width="7" stroke-linecap="round"/>
+  </g>
+</svg>

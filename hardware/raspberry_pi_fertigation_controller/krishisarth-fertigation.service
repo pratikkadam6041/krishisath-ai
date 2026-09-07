@@ -1,0 +1,16 @@
+[Unit]
+Description=KrishiSarth Raspberry Pi Fertigation Controller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/krishisarth-ai/hardware/raspberry_pi_fertigation_controller
+Environment=KS_FERTIGATION_CONFIG=/home/pi/krishisarth-ai/hardware/raspberry_pi_fertigation_controller/config.json
+ExecStart=/home/pi/krishisarth-ai/hardware/raspberry_pi_fertigation_controller/.venv/bin/python /home/pi/krishisarth-ai/hardware/raspberry_pi_fertigation_controller/fertigation_controller.py
+Restart=always
+RestartSec=5
+User=pi
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,25 @@
+{
+  "app": {
+    "title": "KrishiSarth 2.0"
+  },
+  "common": {
+    "save": "Save",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "skip": "Skip",
+    "done": "Done"
+  },
+  "home": {
+    "hello": "Hello",
+    "manual": "Manual",
+    "stopPump": "Stop pump",
+    "waterNow": "Water now",
+    "temperature": "Temperature",
+    "humidity": "Humidity"
+  }
+}

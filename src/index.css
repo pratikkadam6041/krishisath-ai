@@ -1,0 +1,212 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base ─── */
+@layer base {
+  html, body {
+    @apply antialiased text-text-primary bg-bg transition-colors duration-300;
+  }
+  .dark html,
+  .dark body,
+  .dark {
+    background-color: #020617; /* slate-950 */
+    color: #e2e8f0; /* slate-200 */
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DARK MODE — Admin-style slate palette applied to farmer app
+   All cards, panels, inputs, nav pick up the theme automatically
+   ─────────────────────────────────────────────────────────────── */
+
+/* Page background */
+.dark body,
+.dark #root {
+  background-color: #020617;
+}
+
+/* Generic white cards → slate-900 */
+.dark .bg-white {
+  background-color: #0f172a !important;
+}
+
+/* Generic off-white / surface colors */
+.dark .bg-\[\#f7faf5\],
+.dark .bg-\[\#f6faf4\],
+.dark .bg-\[\#f5f8f4\],
+.dark .bg-\[\#f4f9f2\],
+.dark .bg-\[\#f3f7f1\],
+.dark .bg-\[\#fbfdfb\],
+.dark .bg-\[\#edf6ec\],
+.dark .bg-\[\#f2f8f0\] {
+  background-color: #1e293b !important; /* slate-800 */
+}
+
+/* Surface-2 utility */
+.dark .bg-surface-2 {
+  background-color: #1e293b !important;
+}
+
+/* White borders → slate-700 */
+.dark .border-\[\#e7eee4\],
+.dark .border-\[\#dbe5d8\],
+.dark .border-\[\#dde8db\],
+.dark .border-\[\#ebf3ea\] {
+  border-color: #334155 !important;
+}
+
+.dark .border-border {
+  border-color: #334155 !important;
+}
+
+/* Text colors */
+.dark .text-text-primary {
+  color: #f1f5f9 !important; /* slate-100 */
+}
+.dark .text-text-secondary {
+  color: #94a3b8 !important; /* slate-400 */
+}
+.dark .text-\[\#1a3d1a\] {
+  color: #34d399 !important; /* emerald-400 — keep brand accent */
+}
+
+/* Inputs */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #10b981 !important; /* emerald-500 */
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15) !important;
+}
+
+/* Rounded card panels — give them a slate-800 tone */
+.dark .rounded-\[28px\],
+.dark .rounded-\[24px\],
+.dark .rounded-\[32px\] {
+  background-color: #0f172a;
+}
+
+/* Bottom navigation */
+.dark nav,
+.dark .bottom-nav {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+/* Scrollbars */
+.dark ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ─── Weather hero card ─── */
+.weather-hero-card {
+  background: linear-gradient(135deg, #1a237e 0%, #283593 35%, #1565c0 65%, #0d47a1 100%);
+  position: relative;
+  overflow: hidden;
+}
+.weather-hero-card--night {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 35%, #21262d 65%, #1c2128 100%);
+}
+.weather-hero-card__aurora {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(99,179,237,0.18) 0%, transparent 55%),
+              radial-gradient(ellipse at 70% 80%, rgba(167,139,250,0.12) 0%, transparent 55%);
+  pointer-events: none;
+}
+.weather-hero-card__glow {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(40px);
+  pointer-events: none;
+}
+.weather-hero-card__glow--primary {
+  width: 200px; height: 200px;
+  top: -60px; right: -40px;
+  background: rgba(96,165,250,0.25);
+}
+.weather-hero-card__glow--secondary {
+  width: 150px; height: 150px;
+  bottom: -50px; left: 20px;
+  background: rgba(167,139,250,0.18);
+}
+.weather-hero-card__grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+.weather-hero-card__cloud-band {
+  position: absolute;
+  left: -10%;
+  width: 120%;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  filter: blur(12px);
+  pointer-events: none;
+}
+.weather-hero-card__cloud-band--back  { top: 10%; }
+.weather-hero-card__cloud-band--front { bottom: 15%; opacity: 0.5; }
+.weather-hero-card__spark {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.7);
+  animation: sparkle 3s ease-in-out infinite;
+  pointer-events: none;
+}
+.weather-hero-card__spark--one   { top: 22%; left: 18%; animation-delay: 0s; }
+.weather-hero-card__spark--two   { top: 55%; right: 25%; animation-delay: 1.2s; }
+.weather-hero-card__spark--three { bottom: 30%; left: 55%; animation-delay: 2.4s; }
+.weather-hero-card__icon-shell {
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* ─── Animations ─── */
+@keyframes sparkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%       { opacity: 1;   transform: scale(1.4); }
+}
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes growUp {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
