@@ -52,6 +52,7 @@ function recordToCrop(record, marketName) {
     mandi: marketName,
     marketKey: marketName,
     arrivalDate: record.arrival_date,
+    source: 'official',
     // Agmarknet returns a current observation, not a historical time series.
     // Start with one real value and let the persisted store add a value only
     // when it receives a new market-day observation.
@@ -125,9 +126,6 @@ export function appendPriceHistory(existingHistory = [], newPrice) {
   const history = [...(existingHistory || [])];
   if (history.length >= 7) history.shift();
   history.push(newPrice);
-  while (history.length < 7) {
-    history.unshift(history[0] ?? newPrice);
-  }
   return history;
 }
 

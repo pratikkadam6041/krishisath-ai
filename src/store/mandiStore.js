@@ -105,6 +105,7 @@ export const useMandiStore = create(
       priceAlerts: {},
       priceHistory: {},
       priceObservationDays: {},
+      priceHistorySource: {},
       lastUpdated: Date.now(),
       isDemo: true,
       isLoading: false,
@@ -154,17 +155,22 @@ export const useMandiStore = create(
 
           const priceHistory = { ...get().priceHistory };
           const priceObservationDays = { ...get().priceObservationDays };
+          const priceHistorySource = { ...get().priceHistorySource };
           const mergeHistory = (cropList) =>
             cropList.map((crop) => {
               const historyKey = `${crop.marketKey || crop.mandi || 'market'}:${crop.id}`;
               const observationDay = String(crop.arrivalDate || new Date().toISOString().slice(0, 10));
-              const savedHistory = priceHistory[historyKey];
+              // Never carry the static demo series into a verified market chart.
+              const savedHistory = crop.source === 'official' && priceHistorySource[historyKey] === 'official'
+                ? priceHistory[historyKey]
+                : undefined;
               const prev = savedHistory || crop.history7d || [];
               const history7d = !savedHistory?.length || priceObservationDays[historyKey] === observationDay
                 ? prev
                 : appendPriceHistory(prev, crop.price);
               priceHistory[historyKey] = history7d;
               priceObservationDays[historyKey] = observationDay;
+              priceHistorySource[historyKey] = crop.source === 'official' ? 'official' : 'demo';
               return {
                 ...crop,
                 history7d,
@@ -191,6 +197,7 @@ export const useMandiStore = create(
             cropsByMarket,
             priceHistory,
             priceObservationDays,
+            priceHistorySource,
             mandis: result.mandis?.length ? result.mandis : get().mandis,
             isDemo: result.isDemo,
             lastUpdated: result.fetchedAt,
@@ -224,7 +231,7 @@ export const useMandiStore = create(
     }),
     {
       name: 'ks-mandi-store',
-      version: 3,
+      version: 4,
       migrate: (persisted) => ({
         ...(persisted || {}),
         crops: persisted?.crops?.length ? persisted.crops : MANDI_DATA,
@@ -233,6 +240,7 @@ export const useMandiStore = create(
         selectedMandi: persisted?.selectedMandi || ALL_MANDIS[0],
         priceHistory: persisted?.priceHistory || {},
         priceObservationDays: persisted?.priceObservationDays || {},
+        priceHistorySource: persisted?.priceHistorySource || {},
       }),
     }
   )

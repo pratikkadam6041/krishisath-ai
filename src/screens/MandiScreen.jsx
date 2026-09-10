@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ArrowLeft, Bell, CalendarDays, ChevronDown, MapPin, RefreshCw, Share2, TrendingDown, TrendingUp } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Bell, ChevronDown, MapPin, RefreshCw, Share2, TrendingDown, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import CropAvatar from '../components/CropAvatar.jsx';
@@ -91,11 +91,20 @@ export default function MandiScreen() {
   const lastUpdated = useMandiStore((state) => state.lastUpdated);
   const isDemo = useMandiStore((state) => state.isDemo);
   const isLoading = useMandiStore((state) => state.isLoading);
+  const loadError = useMandiStore((state) => state.loadError);
   const refreshPrices = useMandiStore((state) => state.refreshPrices);
   const features = useAdminStore((state) => state.features);
 
   const [selectedAlertCrop, setSelectedAlertCrop] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    const updateTime = () => setCurrentTime(Date.now());
+    updateTime();
+    const intervalId = window.setInterval(updateTime, 60 * 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const filters = useMemo(() => ['all', ...crops.map((crop) => crop.id)], [crops]);
   const sortedMandis = useMemo(
@@ -117,7 +126,7 @@ export default function MandiScreen() {
     [selectedFilter, sortedCrops]
   );
 
-  const isStale = Date.now() - lastUpdated > 3 * 60 * 60 * 1000;
+  const isStale = currentTime > 0 && currentTime - lastUpdated > 3 * 60 * 60 * 1000;
 
   if (!isFeatureRouteEnabled('/mandi', features)) {
     return (
@@ -158,6 +167,25 @@ export default function MandiScreen() {
             <RefreshCw size={14} />
             {localize({ hi: 'रीफ्रेश', mr: 'रिफ्रेश', en: 'Refresh' }, language)}
           </button>
+        </div>
+      ) : null}
+
+      {isDemo ? (
+        <div className="mb-4 rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-black text-amber-950">
+            {localize({ hi: 'डेमो मंडी डेटा', mr: 'डेमो मंडी डेटा', en: 'Demo market data — not an official quote' }, language)}
+          </p>
+          <p className="mt-1 text-sm text-amber-800">
+            {localize(
+              {
+                hi: 'सही पुणे भाव के लिए data.gov.in कुंजी सेट करके रिफ्रेश करें।',
+                mr: 'अचूक पुणे दरासाठी data.gov.in की सेट करून रिफ्रेश करा.',
+                en: 'Configure the data.gov.in key, then refresh before using a rate for a decision.',
+              },
+              language
+            )}
+          </p>
+          {loadError ? <p className="mt-1 text-xs font-semibold text-amber-700">{loadError}</p> : null}
         </div>
       ) : null}
 
@@ -206,7 +234,9 @@ export default function MandiScreen() {
             <ChevronDown size={14} />
           </button>
           <span className="rounded-full bg-[#edf6ec] px-3 py-2 text-xs font-black text-[#1a3d1a]">
-            {localize({ hi: 'आज का भाव', mr: 'आजचा भाव', en: "Today's rate" }, language)}
+            {isDemo
+              ? localize({ hi: 'डेमो भाव', mr: 'डेमो दर', en: 'Demo rate' }, language)
+              : localize({ hi: 'रिपोर्ट किया गया भाव', mr: 'नोंदवलेला दर', en: 'Latest reported rate' }, language)}
           </span>
         </div>
 
@@ -260,6 +290,8 @@ export default function MandiScreen() {
           const varietyLabel = localize(VARIETY_LABELS[crop.variety] || { hi: crop.variety, mr: crop.variety, en: crop.variety }, language);
           const trendColor = crop.change >= 0 ? '#16a34a' : '#dc2626';
           const forecast = forecastPrice(crop.history7d || [crop.price]);
+          const hasTrend = (crop.history7d || []).length >= 2;
+          const hasForecastHistory = (crop.history7d || []).length >= 5;
 
           return (
             <div key={crop.id} className="rounded-[28px] border border-border bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
@@ -293,15 +325,28 @@ export default function MandiScreen() {
                     </p>
                     <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-text-secondary">₹</span>
                   </div>
-                  <Sparkline
-                    data={crop.history7d}
-                    height={190}
-                    color={trendColor}
-                    labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-                    showDots
-                    showLabels
-                    formatter={(value) => `₹${formatCurrency(value)}`}
-                  />
+                  {hasTrend ? (
+                    <Sparkline
+                      data={crop.history7d}
+                      height={190}
+                      color={trendColor}
+                      labels={['D-6', 'D-5', 'D-4', 'D-3', 'D-2', 'D-1', 'Latest'].slice(-(crop.history7d || []).length)}
+                      showDots
+                      showLabels
+                      formatter={(value) => `₹${formatCurrency(value)}`}
+                    />
+                  ) : (
+                    <div className="flex h-[190px] items-center justify-center rounded-2xl border border-dashed border-[#cfe2cf] bg-white px-5 text-center text-sm font-semibold text-text-secondary">
+                      {localize(
+                        {
+                          hi: 'एक सत्यापित दैनिक रिपोर्ट मिली है। अगली रिपोर्ट आने पर ट्रेंड चार्ट बनेगा।',
+                          mr: 'एक सत्यापित दैनिक नोंद उपलब्ध आहे. पुढील नोंदींनी ट्रेंड चार्ट तयार होईल.',
+                          en: 'One verified daily report is available. The chart grows as new daily reports arrive.',
+                        },
+                        language
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid gap-3">
@@ -330,23 +375,36 @@ export default function MandiScreen() {
                         language
                       )}
                     </p>
+                    {crop.arrivalDate ? (
+                      <p className="mt-2 text-xs font-bold text-text-secondary">
+                        {localize({ hi: 'रिपोर्ट तिथि', mr: 'नोंद तारीख', en: 'Reported' }, language)}: {crop.arrivalDate}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="rounded-[24px] border border-emerald-100 bg-emerald-50/50 p-4">
                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-800">
                       {localize({ hi: '7 दिन AI अनुमान', mr: '7 दिवस AI अंदाज', en: '7-day AI estimate' }, language)}
                     </p>
-                    <p className="mt-2 text-lg font-black text-text-primary">
-                      ₹{formatCurrency(forecast.lowerBound)} - ₹{formatCurrency(forecast.upperBound)}
-                    </p>
-                    <p className="mt-1 text-sm text-text-secondary">
-                      {forecast.trend === 'up'
-                        ? localize({ hi: 'बढ़ने का रुझान', mr: 'वाढीचा कल', en: 'Upward trend' }, language)
-                        : forecast.trend === 'down'
-                        ? localize({ hi: 'गिरने का रुझान', mr: 'घसरणीचा कल', en: 'Downward trend' }, language)
-                        : localize({ hi: 'स्थिर रुझान', mr: 'स्थिर कल', en: 'Stable trend' }, language)}
-                      {' · '}{forecast.confidence}%
-                    </p>
+                    {hasForecastHistory ? (
+                      <>
+                        <p className="mt-2 text-lg font-black text-text-primary">
+                          ₹{formatCurrency(forecast.lowerBound)} - ₹{formatCurrency(forecast.upperBound)}
+                        </p>
+                        <p className="mt-1 text-sm text-text-secondary">
+                          {forecast.trend === 'up'
+                            ? localize({ hi: 'बढ़ने का रुझान', mr: 'वाढीचा कल', en: 'Upward trend' }, language)
+                            : forecast.trend === 'down'
+                            ? localize({ hi: 'गिरने का रुझान', mr: 'घसरणीचा कल', en: 'Downward trend' }, language)
+                            : localize({ hi: 'स्थिर रुझान', mr: 'स्थिर कल', en: 'Stable trend' }, language)}
+                          {' · '}{forecast.confidence}%
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-sm font-semibold text-text-secondary">
+                        {localize({ hi: 'अनुमान के लिए 5 सत्यापित दैनिक रिपोर्ट चाहिए।', mr: 'अंदाजासाठी 5 सत्यापित दैनिक नोंदी हव्यात.', en: 'Needs 5 verified daily reports before showing a forecast.' }, language)}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

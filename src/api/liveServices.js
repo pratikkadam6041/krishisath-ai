@@ -153,13 +153,16 @@ export async function fetchMandiPrices({
       url.searchParams.set('api-key', DATA_GOV_KEY);
       url.searchParams.set('format', 'json');
       url.searchParams.set('limit', limit);
-      url.searchParams.set('filters[State]', state);
+      // The current Agmarknet resource exposes its indexed state field as
+      // `state.keyword`.  Using the display-label casing (for example
+      // `filters[State]`) silently returns no Pune records on the live API.
+      url.searchParams.set('filters[state.keyword]', state);
       if (market) {
-        url.searchParams.set('filters[Market]', market);
+        url.searchParams.set('filters[market]', market);
       }
       // Filter by commodities if specified
       if (commodities.length === 1) {
-        url.searchParams.set('filters[Commodity]', commodities[0]);
+        url.searchParams.set('filters[commodity]', commodities[0]);
       }
 
       const res = await fetch(url.toString());
@@ -209,7 +212,7 @@ export async function fetchMandiPrices({
         fetchedAt: cachedData.fetchedAt,
         error: 'Offline mode: Showing cached data',
       };
-    } catch (e) {
+    } catch {
       console.warn('Cache parsing failed');
     }
   }
