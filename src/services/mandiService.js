@@ -52,18 +52,11 @@ function recordToCrop(record, marketName) {
     mandi: marketName,
     marketKey: marketName,
     arrivalDate: record.arrival_date,
-    history7d: [price, price, price, price, price, price, price],
+    // Agmarknet returns a current observation, not a historical time series.
+    // Start with one real value and let the persisted store add a value only
+    // when it receives a new market-day observation.
+    history7d: [price],
   };
-}
-
-/** Fetch prices for one market */
-async function fetchMarketRecords(marketFilter, state = 'Maharashtra') {
-  const { records, isLive, error } = await fetchMandiPrices({
-    state,
-    limit: 50,
-    market: marketFilter,
-  });
-  return { records, isLive, error };
 }
 
 /** Merge API records into per-market crop lists */

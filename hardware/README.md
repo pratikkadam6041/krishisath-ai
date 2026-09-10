@@ -43,6 +43,12 @@ This folder contains the hardware firmware/scripts that match the current app MQ
 
 ## Wi-Fi / MQTT Troubleshooting
 
+### Local broker (hackathon setup)
+
+- From the project folder, run `npm run local`. This starts the laptop-only MQTT broker on TCP `1883` and the dashboard on HTTP port `8000`.
+- Both scout sketches point to the laptop's current hotspot IPv4 address (`10.227.75.71`) on port `1883`. If the laptop reconnects to a different network and its IPv4 changes, update `MQTT_SERVER` in both sketches and flash them again.
+- The dashboard uses the same laptop broker through `ws://localhost:8080`; it does not fall back to an online MQTT service.
+
 - ESP8266 connects only to `2.4GHz` Wi-Fi. It will not connect to `5GHz`.
 - Avoid public/captive-login Wi-Fi. If a phone or laptop must open a browser login page first, the ESP8266 cannot complete that login.
 - If Serial Monitor shows `ssid_not_found`, check the SSID spelling and 2.4GHz network availability.

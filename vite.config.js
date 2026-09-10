@@ -2,24 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
-import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 
-const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-function getOptionalBasicSslPlugin() {
-  try {
-    const mod = require('@vitejs/plugin-basic-ssl');
-    const pluginFactory = mod.default ?? mod;
-    return pluginFactory();
-  } catch {
-    return null;
-  }
-}
-
-const basicSslPlugin = getOptionalBasicSslPlugin();
 
 // --- Local Database Plugin ---
 // This acts as a centralized "backend" so different Chrome Profiles can share data
@@ -62,7 +48,6 @@ const localDatabasePlugin = () => ({
 export default defineConfig({
   plugins: [
     react(),
-    basicSslPlugin,
     localDatabasePlugin(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -101,7 +86,7 @@ export default defineConfig({
       },
       devOptions: { enabled: true },
     }),
-  ].filter(Boolean),
+  ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
@@ -114,6 +99,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '0.0.0.0',
-    https: Boolean(basicSslPlugin),
+    // HTTP keeps local WebSocket MQTT (ws://localhost:8080) available in Chrome.
+    https: false,
   },
 });

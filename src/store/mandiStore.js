@@ -104,6 +104,7 @@ export const useMandiStore = create(
       selectedCropIds: ['wheat', 'onion', 'tomato'],
       priceAlerts: {},
       priceHistory: {},
+      priceObservationDays: {},
       lastUpdated: Date.now(),
       isDemo: true,
       isLoading: false,
@@ -152,11 +153,18 @@ export const useMandiStore = create(
           const result = await refreshAllMandiData({ state, cropIds: ids });
 
           const priceHistory = { ...get().priceHistory };
+          const priceObservationDays = { ...get().priceObservationDays };
           const mergeHistory = (cropList) =>
             cropList.map((crop) => {
-              const prev = priceHistory[crop.id] || crop.history7d || [];
-              const history7d = appendPriceHistory(prev, crop.price);
-              priceHistory[crop.id] = history7d;
+              const historyKey = `${crop.marketKey || crop.mandi || 'market'}:${crop.id}`;
+              const observationDay = String(crop.arrivalDate || new Date().toISOString().slice(0, 10));
+              const savedHistory = priceHistory[historyKey];
+              const prev = savedHistory || crop.history7d || [];
+              const history7d = !savedHistory?.length || priceObservationDays[historyKey] === observationDay
+                ? prev
+                : appendPriceHistory(prev, crop.price);
+              priceHistory[historyKey] = history7d;
+              priceObservationDays[historyKey] = observationDay;
               return {
                 ...crop,
                 history7d,
@@ -181,6 +189,8 @@ export const useMandiStore = create(
           const payload = {
             crops: displayCrops,
             cropsByMarket,
+            priceHistory,
+            priceObservationDays,
             mandis: result.mandis?.length ? result.mandis : get().mandis,
             isDemo: result.isDemo,
             lastUpdated: result.fetchedAt,
@@ -214,13 +224,15 @@ export const useMandiStore = create(
     }),
     {
       name: 'ks-mandi-store',
-      version: 2,
+      version: 3,
       migrate: (persisted) => ({
         ...(persisted || {}),
         crops: persisted?.crops?.length ? persisted.crops : MANDI_DATA,
         selectedCropIds: persisted?.selectedCropIds?.length ? persisted.selectedCropIds : ['wheat', 'onion', 'tomato'],
         mandis: persisted?.mandis?.length ? persisted.mandis : ALL_MANDIS,
         selectedMandi: persisted?.selectedMandi || ALL_MANDIS[0],
+        priceHistory: persisted?.priceHistory || {},
+        priceObservationDays: persisted?.priceObservationDays || {},
       }),
     }
   )

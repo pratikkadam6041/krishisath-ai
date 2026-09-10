@@ -11,6 +11,7 @@ import { localize, formatCurrency, formatRelativeTime } from '../utils/formatter
 import { Sparkline } from '../utils/svgChart.jsx';
 import { shareMandiPrice } from '../utils/shareWhatsApp.js';
 import { isFeatureRouteEnabled } from '../utils/featureFlags.js';
+import { forecastPrice } from '../ai-ml/pricePrediction.js';
 
 const VARIETY_LABELS = {
   Dara: { hi: 'दारा', mr: 'दारा', en: 'Dara' },
@@ -258,6 +259,7 @@ export default function MandiScreen() {
         {visibleCrops.map((crop) => {
           const varietyLabel = localize(VARIETY_LABELS[crop.variety] || { hi: crop.variety, mr: crop.variety, en: crop.variety }, language);
           const trendColor = crop.change >= 0 ? '#16a34a' : '#dc2626';
+          const forecast = forecastPrice(crop.history7d || [crop.price]);
 
           return (
             <div key={crop.id} className="rounded-[28px] border border-border bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
@@ -327,6 +329,23 @@ export default function MandiScreen() {
                         },
                         language
                       )}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[24px] border border-emerald-100 bg-emerald-50/50 p-4">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-800">
+                      {localize({ hi: '7 दिन AI अनुमान', mr: '7 दिवस AI अंदाज', en: '7-day AI estimate' }, language)}
+                    </p>
+                    <p className="mt-2 text-lg font-black text-text-primary">
+                      ₹{formatCurrency(forecast.lowerBound)} - ₹{formatCurrency(forecast.upperBound)}
+                    </p>
+                    <p className="mt-1 text-sm text-text-secondary">
+                      {forecast.trend === 'up'
+                        ? localize({ hi: 'बढ़ने का रुझान', mr: 'वाढीचा कल', en: 'Upward trend' }, language)
+                        : forecast.trend === 'down'
+                        ? localize({ hi: 'गिरने का रुझान', mr: 'घसरणीचा कल', en: 'Downward trend' }, language)
+                        : localize({ hi: 'स्थिर रुझान', mr: 'स्थिर कल', en: 'Stable trend' }, language)}
+                      {' · '}{forecast.confidence}%
                     </p>
                   </div>
                 </div>

@@ -7,11 +7,6 @@ import { writeSensorReading } from '../influxdb/writeService.js';
 import { detectAnomaly } from '../ai-ml/anomalyDetection.js';
 import { handleRainData } from '../ai-ml/rainIntegration.js';
 
-const DEFAULT_BROKER_URLS = [
-  'ws://broker.emqx.io:8083/mqtt',
-  'wss://broker.emqx.io:8084/mqtt',
-];
-
 function buildBrokerUrls() {
   const configured = [
     import.meta.env.VITE_MQTT_BROKER_URLS,
@@ -22,7 +17,12 @@ function buildBrokerUrls() {
     .map((value) => value.trim())
     .filter(Boolean);
 
-  return [...new Set([...configured, ...DEFAULT_BROKER_URLS])];
+  if (configured.length) return [...new Set(configured)];
+
+  // The dashboard and the ESP scouts use the broker running on this laptop.
+  // No cloud or public MQTT fallback is used.
+  const hostname = typeof window === 'undefined' ? '127.0.0.1' : window.location.hostname;
+  return [`ws://${hostname}:8080`];
 }
 
 const BROKER_URLS = buildBrokerUrls();

@@ -1,57 +1,99 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { forecastPrice, getAgriculturalSeason } from '../ai-ml/pricePrediction.js';
+import { CROP_NUTRITION } from '../data/cropNutrition.js';
 
-// Uses the API key from environment
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || 'dummy_key');
+const SOWING_WINDOWS = {
+  Kharif: 'June - July',
+  Rabi: 'October - November',
+  Zaid: 'February - March',
+};
+
+function clamp(value, min = 0, max = 100) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function soilSuitability(cropId, soil = {}) {
+  const profile = CROP_NUTRITION[cropId];
+  if (!profile) return 62;
+
+  const withinRange = (value, range) => {
+    if (!Number.isFinite(Number(value))) return 0.65;
+    if (value >= range.min && value <= range.max) return 1;
+    const distance = value < range.min ? range.min - value : value - range.max;
+    return clamp(1 - distance / Math.max(range.max - range.min, 0.1), 0, 1);
+  };
+  const phScore = withinRange(Number(soil.ph), profile.ph);
+  const ecScore = withinRange(Number(soil.ec), profile.ec);
+  const values = [Number(soil.n), Number(soil.p), Number(soil.k)];
+  const completeNpk = values.every(Number.isFinite) && values.every((value) => value > 0);
+
+  // Soil sensors and reports may use different absolute NPK units. Comparing
+  // relative nutrient balance is robust across both, unlike comparing raw
+  // values with a hard-coded laboratory unit.
+  let balanceScore = 0.65;
+  if (completeNpk) {
+    const actualTotal = values.reduce((sum, value) => sum + value, 0);
+    const targetValues = [profile.N.ideal, profile.P.ideal, profile.K.ideal];
+    const targetTotal = targetValues.reduce((sum, value) => sum + value, 0);
+    const imbalance = values.reduce(
+      (sum, value, index) => sum + Math.abs(value / actualTotal - targetValues[index] / targetTotal),
+      0
+    );
+    balanceScore = clamp(1 - imbalance * 1.6, 0.15, 1);
+  }
+  return Math.round((phScore * 0.4 + ecScore * 0.25 + balanceScore * 0.35) * 100);
+}
+
+function cropIdFromRecord(record = {}) {
+  return String(record.id || record.crop || record.cropName || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+}
 
 /**
  * Predicts the next crop based on NPK, history, and season.
  * @param {Object} params - { currentCrop, npk: { n, p, k }, historyData, region, season }
  * @returns {Promise<Object>} prediction data
  */
-export async function getCropPrediction({ currentCrop, npk, historyData, region, season }) {
-  if (!import.meta.env.VITE_GEMINI_API_KEY) {
-    console.warn('VITE_GEMINI_API_KEY not found, using fallback prediction.');
+export async function getCropPrediction({ currentCrop, npk = {}, historyData = [], region = '', season }) {
+  const activeSeason = season || getAgriculturalSeason();
+  const candidates = historyData
+    .map((record) => {
+      const cropId = cropIdFromRecord(record);
+      const market = forecastPrice(record.history7d || record.history || [record.price]);
+      const soil = soilSuitability(cropId, npk);
+      const rotation = cropId === cropIdFromRecord({ crop: currentCrop }) ? 25 : 100;
+      const marketScore = clamp(50 + (market.expectedChangePct || 0) * 4 + market.confidence * 0.35);
+      const score = Math.round(marketScore * 0.5 + soil * 0.32 + rotation * 0.18);
+      return { ...record, cropId, market, soil, rotation, score };
+    })
+    .filter((candidate) => candidate.cropId && candidate.market.available)
+    .sort((left, right) => right.score - left.score);
+
+  const best = candidates[0];
+  if (!best) {
     return {
-      recommendedCrop: 'Soybean',
-      confidenceScore: 85,
-      expectedPriceRange: '4200 - 4600 Rs/Q',
-      recommendedSowingWindow: 'June 2nd week - July 1st week',
-      reasoning: 'Fallback reasoning: Based on typical crop rotations and current NPK values.',
-    };
-  }
-
-  const prompt = `
-You are an expert Indian agronomist and ML model. Based on the following data, recommend the best crop for the upcoming season to maximize profit and maintain soil health.
-
-Farmer's Region: ${region}
-Current Season: ${season}
-Current Crop in field: ${currentCrop || 'None'}
-Soil NPK values: N=${npk?.n || 0}, P=${npk?.p || 0}, K=${npk?.k || 0}
-Recent Market Data (Historical Prices): ${JSON.stringify(historyData)}
-
-Provide the prediction in strict JSON format:
-{
-  "recommendedCrop": "Crop Name",
-  "confidenceScore": 92,
-  "expectedPriceRange": "Min - Max Rs/Quintal",
-  "recommendedSowingWindow": "Dates/Months",
-  "reasoning": "A short, forward-looking explanation (e.g., 'Sugarcane harvest is in 3 months → Coriander prices typically spike in summer → Consider intercropping or next-season planning')."
-}`;
-
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(jsonStr);
-  } catch (error) {
-    console.error('ML Crop Advisor Error:', error);
-    return {
-      recommendedCrop: 'Unknown',
+      recommendedCrop: 'Insufficient market data',
       confidenceScore: 0,
-      expectedPriceRange: 'N/A',
-      recommendedSowingWindow: 'N/A',
-      reasoning: 'Failed to generate prediction. Please try again later.',
+      expectedPriceRange: 'Collect at least one mandi price',
+      recommendedSowingWindow: SOWING_WINDOWS[activeSeason],
+      reasoning: 'No usable market history is available yet. Refresh mandi prices before making a crop decision.',
+      model: 'Agronomic scoring engine',
     };
   }
+
+  const cropName = best.cropName || best.crop || best.cropId;
+  const priceDirection = best.market.trend === 'up' ? 'is projected to rise' : best.market.trend === 'down' ? 'is projected to soften' : 'is projected to stay broadly stable';
+  const rotationNote = best.rotation < 100 ? 'It matches the current crop, so rotate if field history permits.' : 'It also avoids repeating the current crop.';
+
+  return {
+    recommendedCrop: cropName,
+    confidenceScore: Math.round(clamp(best.market.confidence * 0.65 + best.soil * 0.35, 20, 90)),
+    expectedPriceRange: `₹${best.market.lowerBound} - ₹${best.market.upperBound}/Q`,
+    recommendedSowingWindow: SOWING_WINDOWS[activeSeason],
+    reasoning: `${cropName} scores highest for ${region || 'your market'}: its modal price ${priceDirection} over the next 7 days, with ${best.soil}% soil-fit score. ${rotationNote}`,
+    model: 'Market forecast + soil suitability + crop rotation scoring',
+    details: {
+      marketForecast: best.market,
+      soilScore: best.soil,
+      candidateScores: candidates.map(({ cropId, score }) => ({ cropId, score })),
+    },
+  };
 }

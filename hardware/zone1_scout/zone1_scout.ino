@@ -4,9 +4,10 @@
 
 #define ZONE_NUMBER 1
 
-const char* WIFI_SSID = "Public Wifi";
-const char* WIFI_PASSWORD = "Pk18@2004";
-const char* MQTT_SERVER = "10.52.208.71";
+const char* WIFI_SSID = "KrishiSarthHotspot";
+const char* WIFI_PASSWORD = "pk18@2004";
+// Laptop-hosted local MQTT broker. Keep this aligned with the laptop's Wi-Fi IPv4 address.
+const char* MQTT_SERVER = "192.168.137.1";
 const uint16_t MQTT_PORT = 1883;
 
 #define DHTPIN D2
@@ -163,11 +164,8 @@ bool connectWiFi(bool force = false) {
   WiFi.setAutoReconnect(true);
   WiFi.setSleepMode(WIFI_NONE_SLEEP);
   WiFi.setOutputPower(20.5);
-
-  if (force) {
-    WiFi.disconnect();
-    delay(100);
-  }
+  WiFi.disconnect(true);
+  delay(500);
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 

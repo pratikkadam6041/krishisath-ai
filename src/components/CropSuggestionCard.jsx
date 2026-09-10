@@ -2,25 +2,41 @@ import { useEffect, useState } from 'react';
 import { Brain, CalendarDays, IndianRupee, Leaf, Loader2 } from 'lucide-react';
 import { getCropPrediction } from '../services/mlCropAdvisor.js';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { useZoneStore } from '../store/zoneStore.js';
 import { localize } from '../utils/formatters.js';
 
 export default function CropSuggestionCard({ mandiName, historyData }) {
   const language = useSettingsStore((state) => state.language);
+  const zones = useZoneStore((state) => state.zones);
+  const district = useZoneStore((state) => state.district);
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, npk and currentCrop would come from zoneStore
+    const primaryZone = Object.values(zones || {})[0] || {};
+    let active = true;
+
     getCropPrediction({
-      region: mandiName,
-      season: new Date().getMonth() > 5 && new Date().getMonth() < 10 ? 'Kharif' : 'Rabi',
-      npk: { n: 120, p: 40, k: 30 }, // Dummy values for now
-      historyData: historyData.slice(0, 5).map(c => ({ crop: c.cropName, price: c.price })),
-    }).then(res => {
-      setPrediction(res);
+      region: district || mandiName,
+      currentCrop: primaryZone.cropType,
+      npk: {
+        n: primaryZone.nitrogen,
+        p: primaryZone.phosphorus,
+        k: primaryZone.potassium,
+        ph: primaryZone.ph,
+        ec: primaryZone.ec,
+      },
+      historyData,
+    }).then((result) => {
+      if (!active) return;
+      setPrediction(result);
       setLoading(false);
     });
-  }, [mandiName, historyData]);
+
+    return () => {
+      active = false;
+    };
+  }, [district, historyData, mandiName, zones]);
 
   if (loading) {
     return (
@@ -76,6 +92,9 @@ export default function CropSuggestionCard({ mandiName, historyData }) {
           <p className="text-sm font-black text-slate-700">{prediction.recommendedSowingWindow}</p>
         </div>
       </div>
+      <p className="mt-4 text-xs font-medium text-emerald-800/70">
+        {prediction.model || 'Market forecast + soil-fit scoring'}
+      </p>
     </div>
   );
 }

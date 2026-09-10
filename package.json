@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "broker": "node broker.cjs",
+    "local": "node local-dev.cjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
