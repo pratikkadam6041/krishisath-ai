@@ -6,6 +6,7 @@ import { useAlertStore } from '../store/alertStore.js';
 import { writeSensorReading } from '../influxdb/writeService.js';
 import { detectAnomaly } from '../ai-ml/anomalyDetection.js';
 import { handleRainData } from '../ai-ml/rainIntegration.js';
+import { useActivityLogStore } from '../store/activityLogStore.js';
 
 function buildBrokerUrls() {
   const configured = [
@@ -173,6 +174,21 @@ class MqttClientSingleton {
     if (topicMap[topic]) {
       const { zone, field } = topicMap[topic];
       useZoneStore.getState().applySensorReading(zone, field, value, options);
+
+      if (!options.isRetained) {
+        const zoneState = useZoneStore.getState();
+        const zoneData = zoneState.zones?.[zone] || {};
+        useActivityLogStore.getState().logActivity({
+          type: 'sensor-reading',
+          farmerPhone: zoneState.farmerPhone,
+          farmerName: zoneState.userName || zoneState.farmName || 'Farmer',
+          zoneId: zone,
+          zoneName: zoneData.name || zone,
+          title: `${zoneData.name || zone}: ${field} updated`,
+          detail: `Live sensor reading: ${field} = ${value}.`,
+          metadata: { field, value },
+        });
+      }
 
       writeSensorReading(zone, field, value).catch(() => undefined);
 

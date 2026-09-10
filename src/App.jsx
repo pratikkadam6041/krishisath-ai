@@ -60,6 +60,7 @@ function AppShell() {
   const location = useLocation();
   const mqtt = useMqtt();
   const language = useSettingsStore((state) => state.language);
+  const displayMode = useSettingsStore((state) => state.displayMode);
   const zones = useZoneStore((state) => state.zones);
   const queuedCommands = useZoneStore((state) => state.queuedCommands);
   const clearQueuedCommands = useZoneStore((state) => state.clearQueuedCommands);
@@ -166,14 +167,18 @@ function AppShell() {
 
   const isAdminRoute = location.pathname.startsWith('/admin-portal');
   const isTwinRoute = location.pathname.includes('/twin');
+  const isDesktopMode = displayMode === 'desktop';
+  const frameWidth = isDesktopMode
+    ? 'sm:max-w-[1440px] sm:h-[92dvh] sm:max-h-none'
+    : 'max-w-[28rem]';
 
   return (
     <div
       className={`mx-auto flex h-[100dvh] w-full flex-col overflow-hidden shadow-[0_0_0_1px_rgba(15,23,42,0.05),0_30px_90px_rgba(15,23,42,0.12)] sm:my-auto sm:h-[90dvh] sm:max-h-[850px] sm:rounded-[36px] dark:shadow-none ${
-        isAdminRoute ? 'max-w-none sm:h-screen sm:max-h-none sm:rounded-none bg-slate-950' : 'max-w-[28rem]'
+        isAdminRoute ? 'max-w-none sm:h-screen sm:max-h-none sm:rounded-none bg-slate-950' : frameWidth
       } ${
         isTwinRoute ? 'relative bg-[#0a0f12]' : 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),rgba(240,246,238,0.96)_28%,rgba(233,242,230,1)_100%)] dark:bg-slate-950 dark:bg-none'
-      }`}
+      } ${isDesktopMode ? 'desktop-workspace' : ''}`}
     >
       {isOffline ? (
         <div className="flex items-center justify-center gap-2 border-b border-amber-200 bg-[#fff7d6] px-4 py-2 text-center text-sm font-bold text-[#8a5b00]">

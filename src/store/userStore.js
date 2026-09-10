@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useActivityLogStore } from './activityLogStore.js';
 
 export const SUBSCRIPTION_TIERS = {
   BASIC: 'Basic',
@@ -35,6 +36,13 @@ export const useUserStore = create(
         
         const newUsers = { ...users, [phone]: newUser };
         set({ users: newUsers });
+        useActivityLogStore.getState().logActivity({
+          type: 'registration',
+          farmerPhone: phone,
+          farmerName: newUser.firstName,
+          title: 'New farmer registered',
+          detail: `Phone ${phone} created a Basic account and is awaiting admin approval.`,
+        });
         fetch('/api/db', { method: 'POST', body: JSON.stringify({ users: newUsers }) });
         return newUser;
       },

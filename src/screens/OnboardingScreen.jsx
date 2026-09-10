@@ -168,6 +168,7 @@ export default function OnboardingScreen() {
 
     setUserProfile({
       userName: '',
+      farmerPhone: phoneNumber || '',
       farmName: farmName || 'KrishiSarth Farm',
       village: location.village,
       district: location.district,

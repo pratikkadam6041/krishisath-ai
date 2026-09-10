@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity,
   AlertCircle,
   BarChart3,
-  Bug,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
-  Database,
   DollarSign,
-  Droplets,
   HardDrive,
   LayoutDashboard,
   LogOut,
@@ -29,10 +25,13 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useAdminStore } from '../store/adminStore';
-import { useFarmerStore } from '../store/farmerStore';
 import { useQueryStore } from '../store/queryStore';
 import { useZoneStore } from '../store/zoneStore';
+import { useActivityLogStore } from '../store/activityLogStore';
+import { useUserStore } from '../store/userStore';
 import { readSoilReportReviewQueue, updateSoilReportReview } from '../utils/soilReportGuard';
+
+const nowTimestamp = () => Date.now();
 
 /* ─── Stat Card ─── */
 function StatCard({ title, value, subtitle, icon, trend, color = 'emerald' }) {
@@ -60,7 +59,7 @@ function StatCard({ title, value, subtitle, icon, trend, color = 'emerald' }) {
 }
 
 /* ─── NavItem ─── */
-function SideNavItem({ icon, label, path, active, onClick }) {
+function SideNavItem({ icon, label, active, onClick }) {
   return (
     <button
       type="button"
@@ -146,7 +145,7 @@ function SoilReportApprovalQueue() {
       verificationStatus: 'admin_approved',
       verificationConfidence: 'admin',
       appliedBy: 'Admin',
-      appliedAt: Date.now(),
+      appliedAt: nowTimestamp(),
       nitrogen: reportValue(review.reportData, 'nitrogen'),
       phosphorus: reportValue(review.reportData, 'phosphorus'),
       potassium: reportValue(review.reportData, 'potassium'),
@@ -161,7 +160,7 @@ function SoilReportApprovalQueue() {
 
     setReviews(updateSoilReportReview(review.id, {
       status: 'approved',
-      approvedAt: Date.now(),
+      approvedAt: nowTimestamp(),
       approvedBy: 'Admin',
     }));
   };
@@ -247,31 +246,40 @@ function SoilReportApprovalQueue() {
 }
 
 function OverviewSection() {
-  const navigate = useNavigate();
-  const farmers = useFarmerStore(s => s.farmers);
-  const activeFarmersCount = farmers.filter(f => f.status === 'Active').length;
+  const users = useUserStore(s => s.users);
+  const activeFarmersCount = Object.values(users).filter((user) => user.status !== 'SUSPENDED').length;
   const queries = useQueryStore(s => s.queries);
+  const fieldEvents = useActivityLogStore(s => s.events);
+  const [currentTime, setCurrentTime] = useState(0);
 
-  // Build a live activity feed from real queries + farmer additions
+  useEffect(() => {
+    const updateClock = () => setCurrentTime(nowTimestamp());
+    updateClock();
+    const intervalId = window.setInterval(updateClock, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  // Real registration, command, and sensor events are persisted by the app.
   const activityFeed = [
+    ...fieldEvents.map((event) => ({
+      label: event.title,
+      farmer: event.farmerName || event.farmerPhone || 'Farmer',
+      ts: event.createdAt,
+      detail: event.detail,
+      dotColor: event.type === 'registration' ? '#34d399' : event.type === 'sensor-reading' ? '#38bdf8' : '#fbbf24',
+    })),
     ...queries.slice(0, 5).map(q => ({
       label: `Query: ${q.subject}`,
       farmer: q.farmerId,
       ts: q.createdAt,
       dotColor: q.status === 'Open' ? '#f87171' : q.status === 'In Progress' ? '#fbbf24' : '#34d399',
     })),
-    ...farmers.slice(0, 3).map(f => ({
-      label: `Farmer Registered: ${f.name}`,
-      farmer: f.id,
-      ts: Date.now() - Math.random() * 3600000,
-      dotColor: '#34d399',
-    })),
   ]
     .sort((a, b) => b.ts - a.ts)
     .slice(0, 5);
 
   function relTime(ts) {
-    const diff = Math.floor((Date.now() - ts) / 1000);
+    const diff = Math.floor(((currentTime || ts) - ts) / 1000);
     if (diff < 60) return `${diff}s ago`;
     if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
     return `${Math.floor(diff / 3600)} hr ago`;
@@ -304,7 +312,7 @@ function OverviewSection() {
                   <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: ev.dotColor }} />
                   <div>
                     <p className="text-sm font-bold text-white">{ev.label}</p>
-                    <p className="text-xs text-slate-500">{ev.farmer}</p>
+                    <p className="text-xs text-slate-500">{ev.farmer}{ev.detail ? ` · ${ev.detail}` : ''}</p>
                   </div>
                 </div>
                 <span className="shrink-0 text-xs text-slate-500">{relTime(ev.ts)}</span>

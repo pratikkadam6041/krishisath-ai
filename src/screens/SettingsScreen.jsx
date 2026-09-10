@@ -41,6 +41,11 @@ const UNIT_OPTIONS = [
   { value: 'guntha', label: 'Guntha' },
 ];
 
+const DISPLAY_MODE_OPTIONS = [
+  { value: 'app', label: 'App mode' },
+  { value: 'desktop', label: 'Desktop' },
+];
+
 const NOTIFICATION_COPY = {
   moisture: {
     label: { hi: 'नमी अपडेट', mr: 'ओलावा अपडेट', en: 'Moisture updates' },
@@ -144,9 +149,10 @@ export default function SettingsScreen() {
   const setLanguage = useSettingsStore((state) => state.setLanguage);
   const units = useSettingsStore((state) => state.units);
   const setUnits = useSettingsStore((state) => state.setUnits);
+  const displayMode = useSettingsStore((state) => state.displayMode) === 'desktop' ? 'desktop' : 'app';
+  const setDisplayMode = useSettingsStore((state) => state.setDisplayMode);
   const notificationPrefs = useSettingsStore((state) => state.notificationPrefs);
   const toggleNotification = useSettingsStore((state) => state.toggleNotification);
-  const supportPhone = useSettingsStore((state) => state.supportPhone);
   const profilePhoto = useSettingsStore((state) => state.profilePhoto);
   const updateProfile = useSettingsStore((state) => state.updateProfile);
   const farmName = useZoneStore((state) => state.farmName);
@@ -348,6 +354,23 @@ export default function SettingsScreen() {
             {localize({ hi: 'भूमि यूनिट', mr: 'जमीन युनिट', en: 'Land unit' }, language)}
           </p>
           <PreferencePillGroup options={UNIT_OPTIONS} value={units} onChange={setUnits} />
+        </div>
+
+        <div className="mt-5">
+          <p className="mb-2 text-sm font-bold text-text-secondary">
+            {localize({ hi: 'स्क्रीन लेआउट', mr: 'स्क्रीन लेआउट', en: 'Screen layout' }, language)}
+          </p>
+          <PreferencePillGroup options={DISPLAY_MODE_OPTIONS} value={displayMode} onChange={setDisplayMode} />
+          <p className="mt-2 text-xs leading-5 text-text-secondary">
+            {localize(
+              {
+                hi: 'ऐप मोड फोन जैसा लेआउट रखता है; डेस्कटॉप मोड बड़ी स्क्रीन के लिए है।',
+                mr: 'अॅप मोड फोनसारखा लेआउट ठेवतो; डेस्कटॉप मोड मोठ्या स्क्रीनसाठी आहे.',
+                en: 'App mode keeps the phone layout. Desktop mode uses the wide workspace without changing your data connection.',
+              },
+              language
+            )}
+          </p>
         </div>
       </div>
 

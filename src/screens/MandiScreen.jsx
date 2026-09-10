@@ -283,9 +283,28 @@ export default function MandiScreen() {
         </div>
       </div>
 
-      <CropSuggestionCard mandiName={selectedMandi.name} historyData={visibleCrops} />
+      {visibleCrops.length ? <CropSuggestionCard mandiName={selectedMandi.name} historyData={visibleCrops} /> : null}
 
       <div className="mt-4 space-y-4">
+        {!visibleCrops.length ? (
+          <div className="rounded-[28px] border border-sky-200 bg-sky-50 p-6 text-center">
+            <p className="text-lg font-black text-sky-950">
+              {localize({ hi: 'आज कोई आधिकारिक भाव रिपोर्ट नहीं हुई', mr: 'आज अधिकृत दराची नोंद उपलब्ध नाही', en: 'No official rate reported for this market today' }, language)}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-sky-800">
+              {localize({ hi: 'यहां दूसरे मंडी का भाव नहीं दिखाया जाएगा। कुछ देर बाद रीफ्रेश करें।', mr: 'इथे दुसऱ्या मंडीचा दर दाखवला जाणार नाही. थोड्या वेळाने रिफ्रेश करा.', en: 'We will not show a rate from a different Mandi here. Please refresh later.' }, language)}
+            </p>
+            <button
+              type="button"
+              onClick={() => refreshPrices()}
+              disabled={isLoading}
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-900 px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+              {localize({ hi: 'रीफ्रेश', mr: 'रिफ्रेश', en: 'Refresh' }, language)}
+            </button>
+          </div>
+        ) : null}
         {visibleCrops.map((crop) => {
           const varietyLabel = localize(VARIETY_LABELS[crop.variety] || { hi: crop.variety, mr: crop.variety, en: crop.variety }, language);
           const trendColor = crop.change >= 0 ? '#16a34a' : '#dc2626';
@@ -364,7 +383,7 @@ export default function MandiScreen() {
                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-text-secondary">
                       {localize({ hi: 'मार्केट', mr: 'मार्केट', en: 'Market' }, language)}
                     </p>
-                    <p className="mt-2 text-lg font-black text-text-primary">{selectedMandi.name}</p>
+                    <p className="mt-2 text-lg font-black text-text-primary">{crop.sourceMarket || selectedMandi.name}</p>
                     <p className="mt-1 text-sm text-text-secondary">
                       {localize(
                         {

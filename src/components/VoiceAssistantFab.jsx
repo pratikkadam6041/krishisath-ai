@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Mic, Zap, CheckCircle2, Info } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { AudioLines, Mic, Zap, CheckCircle2, Info } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useVoiceRecognition } from '../hooks/useVoiceRecognition.js';
 import { useZoneStore } from '../store/zoneStore.js';
 import { useSettingsStore } from '../store/settingsStore.js';
@@ -9,6 +10,7 @@ import { useMqtt } from '../hooks/useMqtt.js';
 import { dispatchHardwareUpdate } from '../utils/zoneSync.js';
 
 export default function VoiceAssistantFab() {
+  const navigate = useNavigate();
   const language = useSettingsStore((state) => state.language) || 'hi';
   const zones = useZoneStore((state) => state.zones);
   
@@ -53,7 +55,7 @@ export default function VoiceAssistantFab() {
       showToast(msg, 'success');
       speakReply(msg, voiceObj);
     }
-  }, [zones, speakReply]);
+  }, [mqtt, zones, speakReply]);
 
   const voice = useVoiceRecognition({
     language,
@@ -95,7 +97,16 @@ export default function VoiceAssistantFab() {
   return (
     <>
       {/* Voice Assistant Dock */}
-      <div className="fixed z-[95]" style={{ bottom: 'calc(var(--bottom-nav-height) + 90px)', right: 'max(16px, calc(50vw - 14rem + 16px))' }}>
+      <div className="voice-assistant-dock fixed z-[95] flex flex-col items-end gap-3" style={{ bottom: 'calc(var(--bottom-nav-height) + 90px)', right: 'max(16px, calc(50vw - 14rem + 16px))' }}>
+        <button
+          type="button"
+          onClick={() => navigate('/chat?voice=1')}
+          className="krishi-floating-voice-orb flex h-12 w-12 items-center justify-center rounded-full text-white shadow-xl transition hover:scale-105"
+          aria-label="Talk to Krishi"
+          title="Talk to Krishi"
+        >
+          <AudioLines size={21} strokeWidth={1.8} />
+        </button>
         <button
           type="button"
           onClick={handleVoiceClick}

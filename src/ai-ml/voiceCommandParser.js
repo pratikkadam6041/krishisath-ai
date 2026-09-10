@@ -20,7 +20,7 @@ function mapNum(val) {
 // Zone identification patterns
 const ZONE_PATTERNS = [
   { regex: /zone[\s-]?(one|two|three|four|ek|do|don|teen|char|\d+)/i, extract: (m) => `z${mapNum(m[1])}` },
-  { regex: /ज़ोन[\s]?(एक|दो|तीन|चार|\d+)/u, extract: (m) => `z${mapNum(m[1])}` },
+  { regex: /(?:ज़ोन|जोन)[\s]?(एक|दो|तीन|चार|\d+)/u, extract: (m) => `z${mapNum(m[1])}` },
   { regex: /झोन[\s]?(एक|दोन|तीन|चार|\d+)/u, extract: (m) => `z${mapNum(m[1])}` },
   { regex: /\bz(\d+)\b/i, extract: (m) => `z${m[1]}` },
   { regex: /north\s*field/i, extract: () => 'z1' },

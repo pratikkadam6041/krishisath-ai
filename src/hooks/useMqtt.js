@@ -6,6 +6,7 @@ import { writeHardwareEvent } from '../influxdb/writeService.js';
 import { useZoneStore } from '../store/zoneStore.js';
 import { detectAnomaly } from '../ai-ml/anomalyDetection.js';
 import { useNotificationStore } from '../store/notificationStore.js';
+import { useActivityLogStore } from '../store/activityLogStore.js';
 
 // Track which anomalies have already fired notifications (avoid spam)
 const notifiedAnomalies = new Set();
@@ -15,6 +16,20 @@ function canMirrorHardwareLocally() {
     import.meta.env.DEV ||
     ['localhost', '127.0.0.1'].includes(window.location.hostname)
   );
+}
+
+function logFieldCommand(zoneId, title, detail) {
+  const zoneState = useZoneStore.getState();
+  const zone = zoneState.zones?.[zoneId] || {};
+  useActivityLogStore.getState().logActivity({
+    type: 'field-command',
+    farmerPhone: zoneState.farmerPhone,
+    farmerName: zoneState.userName || zoneState.farmName || 'Farmer',
+    zoneId,
+    zoneName: zone.name || zoneId,
+    title,
+    detail,
+  });
 }
 
 function getAnomalyNotification(anomaly, zoneName, language = 'hi') {
@@ -85,25 +100,34 @@ export function useMqtt() {
     if (!zoneId || String(zoneId) === 'null') return false;
     const payload = on ? CMD.PUMP_ON : CMD.PUMP_OFF;
     const ok = mqttClient.publish(getPumpTopic(zoneId), payload);
-    if (ok) {
+    // In the local demo there may be no physical MQTT device. Mirror the state
+    // so controls, including Stop pump, remain demonstrably functional there.
+    // A deployed/real farm never mirrors a failed publish as a hardware action.
+    if (ok || canMirrorHardwareLocally()) {
       useZoneStore.getState().setPumpState(zoneId, on);
       if (!on) {
         useZoneStore.getState().updateZoneField(zoneId, 'pumpOffTime', null);
       }
-      writeHardwareEvent(zoneId, 'pump', payload, triggeredBy).catch(() => {});
+      logFieldCommand(zoneId, on ? 'Irrigation started' : 'Irrigation stopped', `${zoneId} pump command sent by ${triggeredBy}.`);
+      if (ok) {
+        writeHardwareEvent(zoneId, 'pump', payload, triggeredBy).catch(() => {});
+      }
     }
-    return ok;
+    return ok || canMirrorHardwareLocally();
   }, []);
 
   const publishValve = useCallback((zoneId, open, triggeredBy = 'manual') => {
     if (!zoneId || String(zoneId) === 'null') return false;
     const payload = open ? CMD.VALVE_OPEN : CMD.VALVE_CLOSE;
     const ok = mqttClient.publish(getValveTopic(zoneId), payload);
-    if (ok) {
+    if (ok || canMirrorHardwareLocally()) {
       useZoneStore.getState().setValveState(zoneId, open);
-      writeHardwareEvent(zoneId, 'valve', payload, triggeredBy).catch(() => {});
+      logFieldCommand(zoneId, open ? 'Valve opened' : 'Valve closed', `${zoneId} valve command sent by ${triggeredBy}.`);
+      if (ok) {
+        writeHardwareEvent(zoneId, 'valve', payload, triggeredBy).catch(() => {});
+      }
     }
-    return ok;
+    return ok || canMirrorHardwareLocally();
   }, []);
 
   const publishFertigation = useCallback((zoneId, start, triggeredBy = 'manual') => {
@@ -114,6 +138,7 @@ export function useMqtt() {
       useZoneStore.getState().setFertigationState(zoneId, start);
       if (ok) {
         writeHardwareEvent(zoneId, 'fertigation', payload, triggeredBy).catch(() => {});
+        logFieldCommand(zoneId, start ? 'Fertigation started' : 'Fertigation stopped', `${zoneId} fertigation command sent by ${triggeredBy}.`);
       }
     }
     return ok || canMirrorHardwareLocally();
@@ -192,6 +217,7 @@ export function useMqtt() {
     publishPump,
     publishValve,
     publishFertigation,
+    publishThreshold,
     publishTankDose,
     publishFertigationDose,
     publishSystemMode,

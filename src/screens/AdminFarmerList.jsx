@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Activity,
   ArrowLeft,
   CheckCircle2,
   Filter,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import { useUserStore, SUBSCRIPTION_TIERS } from '../store/userStore.js';
+import { useActivityLogStore } from '../store/activityLogStore.js';
 
 const STATUS_FILTER_OPTIONS = ['All', 'APPROVED', 'PENDING', 'SUSPENDED'];
 
@@ -42,14 +44,18 @@ export default function AdminFarmerList() {
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatus]       = useState('All');
   const [actionMenu, setActionMenu]     = useState(null);
+  const [selectedFarmerActivity, setSelectedFarmerActivity] = useState(null);
   
   // Real dynamic users from local store
   const allUsersMap = useUserStore((s) => s.users);
   const updateUserStatus = useUserStore((s) => s.updateUserStatus);
   const updateUserTier = useUserStore((s) => s.updateUserTier);
-  const toggleFeature = useUserStore((s) => s.toggleUserFeature);
   
   const farmers = Object.values(allUsersMap);
+  const activityEvents = useActivityLogStore((state) => state.events);
+  const selectedActivityEvents = selectedFarmerActivity
+    ? activityEvents.filter((event) => event.farmerPhone === selectedFarmerActivity.phone)
+    : [];
 
   /* ─── Filtering ─── */
   const filtered = farmers.filter((f) => {
@@ -349,6 +355,13 @@ export default function AdminFarmerList() {
                                   <X size={15} /> Suspend
                                 </button>
                               )}
+                              <button
+                                type="button"
+                                onClick={() => { setSelectedFarmerActivity(farmer); setActionMenu(null); }}
+                                className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-sky-400 hover:bg-sky-500/10 transition-colors"
+                              >
+                                <Activity size={15} /> Field activity
+                              </button>
                               {/* Divider */}
                               <div className="border-t border-slate-700 my-1" />
                               <button
@@ -374,6 +387,39 @@ export default function AdminFarmerList() {
           Farmers auto-register here when they complete onboarding in the app.
         </p>
       </div>
+
+      {selectedFarmerActivity ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-sky-300"><Activity size={20} /><h2 className="text-xl font-black text-white">Field activity log</h2></div>
+                <p className="mt-1 text-sm text-slate-400">{selectedFarmerActivity.firstName} · {selectedFarmerActivity.phone}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedFarmerActivity(null)} className="rounded-xl p-2 text-slate-400 hover:bg-slate-800 hover:text-white"><X size={20} /></button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {selectedActivityEvents.length ? selectedActivityEvents.map((event) => (
+                <div key={event.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-black text-white">{event.title}</p>
+                      <p className="mt-1 text-sm text-slate-400">{event.detail || 'No additional detail recorded.'}</p>
+                      {event.zoneName ? <p className="mt-2 text-xs font-bold uppercase tracking-wider text-sky-400">{event.zoneName}</p> : null}
+                    </div>
+                    <time className="shrink-0 text-xs text-slate-500">{new Date(event.createdAt).toLocaleString('en-IN')}</time>
+                  </div>
+                </div>
+              )) : (
+                <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950 p-8 text-center text-sm text-slate-500">
+                  No field events yet. Sensor readings and irrigation commands will appear here after this farmer uses the app.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* ─── Confirm Delete Modal ─── */}
       {confirmDelete && (

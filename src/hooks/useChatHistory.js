@@ -19,7 +19,7 @@ export function createChatMessage(overrides) {
   };
 }
 
-export function useChatHistory({ storageKey, maxMessages = 10, initialMessages = [] }) {
+export function useChatHistory({ storageKey, maxMessages = 10, initialMessages = [], language = 'hi' }) {
   const [messages, setMessages] = useState(() => {
     if (typeof window === 'undefined') {
       return initialMessages;
@@ -33,7 +33,7 @@ export function useChatHistory({ storageKey, maxMessages = 10, initialMessages =
 
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) && parsed.length ? parsed : initialMessages;
-    } catch (_) {
+    } catch {
       return initialMessages;
     }
   });
@@ -51,15 +51,18 @@ export function useChatHistory({ storageKey, maxMessages = 10, initialMessages =
       const threads = JSON.parse(window.localStorage.getItem(CHAT_THREADS_KEY) || '[]');
       const summary = {
         id: storageKey,
-        title: lastUserMessage?.content?.slice(0, 40) || 'KisanAI chat',
-        preview: trimmed.at(-1)?.content?.slice(0, 80) || '',
+        title: lastUserMessage?.content?.slice(0, 40) || 'Krishi AI chat',
+        preview: lastUserMessage ? trimmed.at(-1)?.content?.slice(0, 80) || '' : '',
         updatedAt: trimmed.at(-1)?.timestamp || Date.now(),
+        language,
       };
 
       const nextThreads = [summary, ...threads.filter((thread) => thread.id !== storageKey)].slice(0, 10);
       window.localStorage.setItem(CHAT_THREADS_KEY, JSON.stringify(nextThreads));
-    } catch (_) {}
-  }, [messages, maxMessages, storageKey]);
+    } catch {
+      // Browser storage can be unavailable in private or restricted sessions.
+    }
+  }, [language, messages, maxMessages, storageKey]);
 
   const appendMessage = useCallback(
     (message) => {

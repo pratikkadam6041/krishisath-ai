@@ -15,6 +15,7 @@ export const useSettingsStore = create(
     (set) => ({
       language: localStorage.getItem('ks_language') || 'hi',
       darkMode: localStorage.getItem('ks_theme') === 'dark',
+      displayMode: 'app',
       farmName: 'Sarth Farm',
       ownerName: 'Kisan',
       district: 'Pune',
@@ -49,6 +50,8 @@ export const useSettingsStore = create(
       updateProfile: (payload) => set((state) => ({ ...state, ...payload })),
 
       setUnits: (units) => set({ units }),
+
+      setDisplayMode: (displayMode) => set({ displayMode }),
 
       toggleNotification: (key) =>
         set((state) => ({
@@ -87,5 +90,5 @@ export const useSettingsStore = create(
     } else if (localStorage.getItem('ks_theme') === 'dark') {
       document.documentElement.classList.add('dark');
     }
-  } catch (_) { /* ignore */ }
+  } catch { /* ignore */ }
 })();

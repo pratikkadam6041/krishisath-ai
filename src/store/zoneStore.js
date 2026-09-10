@@ -96,6 +96,7 @@ export const useZoneStore = create(
       zones: DEFAULT_ZONES,
       weatherCache: null,
       userName: '',
+      farmerPhone: '',
       farmName: 'Sarth Farm',
       village: 'Pimpri',
       district: 'Pune',
@@ -113,6 +114,7 @@ export const useZoneStore = create(
 
       setUserProfile: ({
         userName,
+        farmerPhone,
         farmName,
         district,
         state,
@@ -123,6 +125,7 @@ export const useZoneStore = create(
       }) =>
         set((current) => ({
           userName: userName || current.userName,
+          farmerPhone: farmerPhone || current.farmerPhone,
           farmName: farmName || current.farmName,
           district: district || current.district,
           state: state || current.state,
@@ -540,6 +543,7 @@ export const useZoneStore = create(
         soilReports: state.soilReports,
         fertigationHistory: state.fertigationHistory,
         userName: state.userName,
+        farmerPhone: state.farmerPhone,
         farmName: state.farmName,
         village: state.village,
         district: state.district,

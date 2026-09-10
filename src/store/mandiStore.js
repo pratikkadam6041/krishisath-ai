@@ -114,11 +114,9 @@ export const useMandiStore = create(
       setSelectedMandi: (selectedMandi) => {
         const { cropsByMarket } = get();
         const marketCrops = cropsByMarket[selectedMandi.id];
-        if (marketCrops?.length) {
-          set({ selectedMandi, crops: marketCrops });
-        } else {
-          set({ selectedMandi });
-        }
+        // An empty official response is meaningful: do not leave the previous
+        // Mandi's prices visible after the user changes market.
+        set({ selectedMandi, crops: marketCrops || [] });
       },
 
       setSelectedCrops: (selectedCropIds) => set({ selectedCropIds }),
@@ -186,7 +184,8 @@ export const useMandiStore = create(
           });
 
           const selectedMandi = get().selectedMandi;
-          const displayCrops = cropsByMarket[selectedMandi?.id]?.length
+          const hasSelectedMarketResponse = Object.prototype.hasOwnProperty.call(cropsByMarket, selectedMandi?.id);
+          const displayCrops = hasSelectedMarketResponse
             ? cropsByMarket[selectedMandi.id]
             : crops.length
             ? crops

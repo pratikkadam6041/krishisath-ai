@@ -131,6 +131,7 @@ function ZoneCard({ zoneId, zone, language, units, onManualOpen, onWater, onStop
   const moistureMeta = useMemo(() => getMoistureMeta(zone.moisture, language), [language, zone.moisture]);
   const syncMeta = useMemo(() => getSyncMeta(zone.lastUpdated, language), [language, zone.lastUpdated]);
   const isActMode = useModeStore((state) => state.mode === 'act');
+  const isControlDisabled = !isActMode && !zone.pumpOn;
 
   const sensorCards = [
     {
@@ -312,9 +313,9 @@ function ZoneCard({ zoneId, zone, language, units, onManualOpen, onWater, onStop
         <button
           type="button"
           onClick={zone.pumpOn ? onStop : onWater}
-          disabled={!isActMode}
+          disabled={isControlDisabled}
           className={`flex-1 rounded-2xl px-4 py-4 text-sm font-black text-white ${
-            !isActMode ? 'cursor-not-allowed bg-slate-300 text-slate-500' : zone.pumpOn ? 'bg-[#c7684b]' : 'bg-[#1a3d1a]'
+            isControlDisabled ? 'cursor-not-allowed bg-slate-300 text-slate-500' : zone.pumpOn ? 'bg-[#c7684b]' : 'bg-[#1a3d1a]'
           }`}
         >
           {zone.pumpOn
@@ -476,8 +477,14 @@ export default function HomeScreen() {
     queuePumpCommand(zoneId, true);
   };
 
+  const stopIrrigation = (zoneId) => {
+    // Stopping is an emergency-safe action: always close both pump and valve.
+    mqtt.publishPump(zoneId, false, 'home');
+    mqtt.publishValve(zoneId, false, 'home');
+  };
+
   return (
-    <div className="px-4 pt-4 pb-6">
+    <div className="home-screen px-4 pt-4 pb-6">
       <div className="mb-4 flex items-start justify-between">
         <button
           type="button"
@@ -534,6 +541,7 @@ export default function HomeScreen() {
         </div>
       ) : null}
 
+      <div className="home-weather-grid">
       <button type="button" onClick={() => navigate('/weather')} className="mb-4 block w-full text-left">
         {weather ? (
           <div
@@ -613,7 +621,7 @@ export default function HomeScreen() {
       </button>
 
       {weather?.forecast7d?.length ? (
-        <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+        <div className="home-forecast mb-5 flex gap-2 overflow-x-auto pb-1">
           {weather.forecast7d.slice(0, 5).map((day, index) => (
             <div
               key={day.date}
@@ -636,6 +644,7 @@ export default function HomeScreen() {
           ))}
         </div>
       ) : null}
+      </div>
 
       {onboardingStatus === 'skipped' ? (
         <div className="mb-4 rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
@@ -836,7 +845,7 @@ export default function HomeScreen() {
                   units={units}
                   onManualOpen={() => setManualSheetZone(zoneId)}
                   onWater={() => setConfirmZone({ zoneId, zone })}
-                  onStop={() => mqtt.publishPump(zoneId, false, 'home')}
+                  onStop={() => stopIrrigation(zoneId)}
                   onView={() => navigate(`/zone/${zoneId}`)}
                 />
               ))}
@@ -917,8 +926,8 @@ export default function HomeScreen() {
           />
           <QuickCard
             icon={<MessageSquareText size={22} className="text-emerald-700" />}
-            title="KisanAI Chat"
-            subtitle={localize({ hi: 'कुछ भी पूछें', mr: 'काहीही विचारा', en: 'Ask anything' }, language)}
+            title="Krishi AI"
+            subtitle={localize({ hi: 'बोलकर या लिखकर पूछें', mr: 'बोलून किंवा लिहून विचारा', en: 'Talk or type naturally' }, language)}
             colorClass="bg-emerald-100"
             onClick={() => navigate('/chat')}
           />

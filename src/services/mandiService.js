@@ -6,7 +6,10 @@ import { fetchMandiPrices } from '../api/liveServices.js';
 import { getCropMeta } from '../data/appContent.js';
 
 const MH_MARKETS = [
-  { id: 'pune', name: 'Pune APMC', marketFilter: 'Pune', distance: '12 km' },
+  // A Pune-wide query includes Moshi and Pimpri, which creates duplicate
+  // commodity cards. Use one explicitly named APMC for the Pune tab so every
+  // displayed price has a single, traceable official source.
+  { id: 'pune', name: 'Pune APMC (Moshi)', marketFilter: 'Pune(Moshi)', distance: '12 km' },
   { id: 'nashik', name: 'Nashik APMC', marketFilter: 'Nashik', distance: '214 km' },
   { id: 'nagpur', name: 'Nagpur APMC', marketFilter: 'Nagpur', distance: '720 km' },
   { id: 'solapur', name: 'Solapur APMC', marketFilter: 'Solapur', distance: '249 km' },
@@ -49,8 +52,9 @@ function recordToCrop(record, marketName) {
     max,
     change: 0,
     unit: 'क्विंटल',
-    mandi: marketName,
+    mandi: record.market || marketName,
     marketKey: marketName,
+    sourceMarket: record.market || marketName,
     arrivalDate: record.arrival_date,
     source: 'official',
     // Agmarknet returns a current observation, not a historical time series.
@@ -58,6 +62,28 @@ function recordToCrop(record, marketName) {
     // when it receives a new market-day observation.
     history7d: [price],
   };
+}
+
+function arrivalTime(value) {
+  const [day, month, year] = String(value || '').split('/').map(Number);
+  return Number.isFinite(day) && Number.isFinite(month) && Number.isFinite(year)
+    ? Date.UTC(year, month - 1, day)
+    : 0;
+}
+
+function distinctCommodities(records = []) {
+  const representativeByCommodity = new Map();
+
+  records.forEach((record) => {
+    const key = slugify(record.commodity);
+    if (!key) return;
+    const existing = representativeByCommodity.get(key);
+    if (!existing || arrivalTime(record.arrival_date) > arrivalTime(existing.arrival_date)) {
+      representativeByCommodity.set(key, record);
+    }
+  });
+
+  return [...representativeByCommodity.values()];
 }
 
 /** Merge API records into per-market crop lists */
@@ -86,7 +112,7 @@ export async function refreshAllMandiData({ state = 'Maharashtra', cropIds = [] 
         if (byMarket.length > 0) filtered = byMarket;
       }
 
-      const crops = filtered
+      const crops = distinctCommodities(filtered)
         .filter((r) =>
           commodities.length === 0
             ? true

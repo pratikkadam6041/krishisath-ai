@@ -67,15 +67,18 @@ export async function getCropPrediction({ currentCrop, npk = {}, historyData = [
     .filter((candidate) => candidate.cropId && candidate.market.available)
     .sort((left, right) => right.score - left.score);
 
-  const best = candidates[0];
+  const forecastReady = candidates.filter((candidate) => candidate.market.observations >= 5);
+
+  const best = forecastReady[0];
   if (!best) {
     return {
-      recommendedCrop: 'Insufficient market data',
+      recommendedCrop: 'Collecting verified market history',
       confidenceScore: 0,
-      expectedPriceRange: 'Collect at least one mandi price',
+      expectedPriceRange: 'Available after 5 daily reports',
       recommendedSowingWindow: SOWING_WINDOWS[activeSeason],
-      reasoning: 'No usable market history is available yet. Refresh mandi prices before making a crop decision.',
-      model: 'Agronomic scoring engine',
+      reasoning: `The official ${region || 'mandi'} rate is visible, but the crop adviser will wait for five verified daily reports before making a price-based recommendation.`,
+      model: 'Market history collection',
+      status: 'collecting-history',
     };
   }
 
@@ -90,6 +93,7 @@ export async function getCropPrediction({ currentCrop, npk = {}, historyData = [
     recommendedSowingWindow: SOWING_WINDOWS[activeSeason],
     reasoning: `${cropName} scores highest for ${region || 'your market'}: its modal price ${priceDirection} over the next 7 days, with ${best.soil}% soil-fit score. ${rotationNote}`,
     model: 'Market forecast + soil suitability + crop rotation scoring',
+    status: 'ready',
     details: {
       marketForecast: best.market,
       soilScore: best.soil,

@@ -43,7 +43,9 @@ export function useVoiceRecognition({
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch (_) {}
+      } catch {
+        // The browser may already have ended recognition.
+      }
     }
 
     setIsListening(false);
@@ -87,7 +89,9 @@ export function useVoiceRecognition({
 
         try {
           recognition.stop();
-        } catch (_) {}
+        } catch {
+          // Recognition has already reached its final result.
+        }
       }
     };
 
@@ -135,7 +139,7 @@ export function useVoiceRecognition({
 
     try {
       recognitionRef.current.start();
-    } catch (_) {
+    } catch {
       emitError('Voice input failed, please try again');
       setIsArmed(false);
       setIsListening(false);

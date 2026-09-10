@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { MessageCircle, Send, Volume2, VolumeX, X, WifiOff, Zap, CheckCircle2 } from 'lucide-react';
+import { AudioLines, KeyRound, MessageCircle, Mic, Plus, Send, Volume2, VolumeX, X, WifiOff, Zap, CheckCircle2 } from 'lucide-react';
 import { sendKisanChat } from '../api/kisanChat.js';
+import { sendOpenAiVoiceChat } from '../api/openaiVoiceChat.js';
 import { offlineKrishiResponse } from '../ai-ml/offlineKrishi.js';
 import { createChatMessage, useChatHistory } from '../hooks/useChatHistory.js';
 import { useVoiceRecognition } from '../hooks/useVoiceRecognition.js';
 import { useZoneStore } from '../store/zoneStore.js';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { useModeStore } from '../store/modeStore.js';
 import { useChatWidgetStore } from '../store/chatWidgetStore.js';
 import { parseFarmerCommand, buildConfirmMessage } from '../ai-ml/voiceCommandParser.js';
 import {
@@ -24,60 +26,83 @@ import QuickReplies from './QuickReplies.jsx';
 import VoiceButton from './VoiceButton.jsx';
 
 const CHAT_STORAGE_KEY = 'kisanai-chat-history';
-const LANGUAGE_STORAGE_KEY = 'kisanai-chat-language';
 const TTS_STORAGE_KEY = 'kisanai-chat-tts';
 
 const UI_COPY = {
   hi: {
     welcome:
-      'नमस्ते! मैं KisanAI हूं। अपनी फसल, मंडी भाव, मौसम या सरकारी योजना के बारे में पूछिए।',
+      'नमस्ते! मैं Krishi AI हूं, आपका खेत साथी। अपनी फसल, मंडी भाव, मौसम, रोग या सरकारी योजना के बारे में बोलकर या लिखकर पूछिए।',
     placeholder: 'अपना सवाल लिखें या बोलें...',
-    typing: 'KisanAI जवाब तैयार कर रहा है...',
+    typing: 'Krishi AI जवाब तैयार कर रहा है...',
     offline: 'No internet connection',
     retry: 'Retry',
     sources: 'Sources',
-    launcher: 'KisanAI',
-    subtitle: 'Indian Farming Assistant',
+    launcher: 'Krishi AI',
+    subtitle: 'आपका सुनने वाला खेत साथी',
+    agentHint: 'माइक दबाकर प्राकृतिक भाषा में बात करें',
+    listening: 'Krishi सुन रहा है…',
+    advancedVoice: 'उन्नत वॉइस मोड शुरू करें',
+    endVoice: 'वॉइस मोड बंद करें',
+    voiceModeHint: 'बोलें, जवाब सुनें, फिर अगला सवाल बोलें',
+    voiceReady: 'अपने खेत के बारे में कुछ भी बोलें',
+    voiceActionSafety: 'सिंचाई और वाल्व कमांड पहले आपकी पुष्टि मांगते हैं',
+    voiceGreeting: 'नमस्ते! मैं Krishi हूं। आज आपके खेत में मैं कैसे मदद कर सकता हूं?',
     voiceNotSupported: 'Voice not supported in this browser',
     voiceNotDetected: 'Voice not detected, please try again',
     serverBusy: 'Server busy, please retry',
     micDenied: 'Microphone permission is blocked',
-    open: 'Open KisanAI',
-    close: 'Close KisanAI',
+    open: 'Open Krishi AI',
+    close: 'Close Krishi AI',
   },
   en: {
     welcome:
-      'Hello! I am KisanAI. Ask me about crops, mandi prices, weather, pests, or government schemes.',
+      'Hello! I am Krishi AI, your farm companion. Speak or type naturally about your crops, mandi prices, weather, pests, or government schemes.',
     placeholder: 'Type or speak your farming question...',
-    typing: 'KisanAI is preparing a live answer...',
+    typing: 'Krishi AI is preparing a live answer...',
     offline: 'No internet connection',
     retry: 'Retry',
     sources: 'Sources',
-    launcher: 'KisanAI',
-    subtitle: 'Indian Farming Assistant',
+    launcher: 'Krishi AI',
+    subtitle: 'Your listening farm companion',
+    agentHint: 'Tap the mic and talk naturally',
+    listening: 'Krishi is listening…',
+    advancedVoice: 'Start advanced voice mode',
+    endVoice: 'End voice mode',
+    voiceModeHint: 'Speak, hear the reply, then ask your next question',
+    voiceReady: 'Talk naturally about anything on your farm',
+    voiceActionSafety: 'Irrigation and valve commands always need your approval',
+    voiceGreeting: 'Hello, I am Krishi. How can I help with your farm today?',
     voiceNotSupported: 'Voice not supported in this browser',
     voiceNotDetected: 'Voice not detected, please try again',
     serverBusy: 'Server busy, please retry',
     micDenied: 'Microphone permission is blocked',
-    open: 'Open KisanAI',
-    close: 'Close KisanAI',
+    open: 'Open Krishi AI',
+    close: 'Close Krishi AI',
   },
   mr: {
     welcome:
-      'नमस्कार! मी KisanAI आहे. पीक, मंडी भाव, हवामान, रोग किंवा सरकारी योजनांबद्दल विचारा.',
+      'नमस्कार! मी Krishi AI आहे, तुमचा शेत साथी. पीक, मंडी भाव, हवामान, रोग किंवा सरकारी योजनांबद्दल बोलून किंवा लिहून विचारा.',
     placeholder: 'तुमचा शेतीचा प्रश्न लिहा किंवा बोला...',
-    typing: 'KisanAI थेट माहिती तपासत आहे...',
+    typing: 'Krishi AI थेट माहिती तपासत आहे...',
     offline: 'No internet connection',
     retry: 'Retry',
     sources: 'Sources',
-    launcher: 'KisanAI',
-    subtitle: 'Indian Farming Assistant',
+    launcher: 'Krishi AI',
+    subtitle: 'तुमचा ऐकणारा शेत साथी',
+    agentHint: 'माइक दाबा आणि सहजपणे बोला',
+    listening: 'Krishi ऐकत आहे…',
+    advancedVoice: 'अॅडव्हान्स व्हॉइस मोड सुरू करा',
+    endVoice: 'व्हॉइस मोड बंद करा',
+    voiceModeHint: 'बोला, उत्तर ऐका आणि पुढचा प्रश्न विचारा',
+    voiceReady: 'तुमच्या शेताबद्दल काहीही सहजपणे बोला',
+    voiceActionSafety: 'सिंचन आणि वाल्व कमांडसाठी नेहमी तुमची पुष्टी लागते',
+    voiceGreeting: 'नमस्कार! मी Krishi आहे. आज तुमच्या शेतासाठी मी कशी मदत करू?',
     voiceNotSupported: 'Voice not supported in this browser',
     voiceNotDetected: 'Voice not detected, please try again',
     serverBusy: 'Server busy, please retry',
     micDenied: 'Microphone permission is blocked',
-    open: 'Open KisanAI',
-    close: 'Close KisanAI',
+    open: 'Open Krishi AI',
+    close: 'Close Krishi AI',
   },
 };
 
@@ -89,24 +114,36 @@ const QUICK_REPLIES = {
 
 const NOOP = () => {};
 
+function cleanAssistantText(value) {
+  return String(value || '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/```([\s\S]*?)```/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/(^|\s)[*_]([^*_]+)[*_](?=\s|$|[.,!?])/gm, '$1$2')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}[-*+]\s+/gm, '• ')
+    .replace(/\*+/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function getSpokenDecision(text) {
+  const normalized = String(text || '').trim().toLowerCase();
+  if (!normalized) return null;
+
+  if (/^(yes|yeah|yep|haan|ha|haanji|हाँ|हां|हा|हो|होय)(?:\s|$)/u.test(normalized)) return true;
+  if (/^(no|nope|nah|nahi|nahin|नहीं|नही|ना|नको)(?:\s|$)/u.test(normalized)) return false;
+  return null;
+}
+
 function buildWelcomeMessage(language) {
   return createChatMessage({
     role: 'assistant',
     content: UI_COPY[language]?.welcome || UI_COPY.hi.welcome,
     isWelcome: true,
   });
-}
-
-function getInitialLanguage() {
-  if (typeof window === 'undefined') {
-    return 'hi';
-  }
-
-  try {
-    return window.sessionStorage.getItem(LANGUAGE_STORAGE_KEY) || 'hi';
-  } catch (_) {
-    return 'hi';
-  }
 }
 
 function getInitialTtsValue() {
@@ -116,7 +153,7 @@ function getInitialTtsValue() {
 
   try {
     return window.sessionStorage.getItem(TTS_STORAGE_KEY) !== 'false';
-  } catch (_) {
+  } catch {
     return true;
   }
 }
@@ -178,14 +215,14 @@ function getChatErrorState(error, copy) {
 function getSocialReply(text, languageCode) {
   if (isGreetingOnly(text)) {
     if (languageCode === 'mr') {
-      return 'नमस्कार! मी KisanAI आहे. शेती, हवामान, मंडी भाव, रोग-किड किंवा सरकारी योजनांबद्दल विचारा.';
+      return 'नमस्कार! मी Krishi AI आहे. शेती, हवामान, मंडी भाव, रोग-किड किंवा सरकारी योजनांबद्दल विचारा.';
     }
 
     if (languageCode === 'en') {
-      return 'Hello! I am KisanAI. Ask me about crops, weather, mandi prices, pests, or government schemes.';
+      return 'Hello! I am Krishi AI. Ask me about crops, weather, mandi prices, pests, or government schemes.';
     }
 
-    return 'नमस्ते! मैं KisanAI हूं। आप खेती, मौसम, मंडी भाव, कीट-रोग या सरकारी योजनाओं के बारे में पूछ सकते हैं।';
+    return 'नमस्ते! मैं Krishi AI हूं। आप खेती, मौसम, मंडी भाव, कीट-रोग या सरकारी योजनाओं के बारे में पूछ सकते हैं।';
   }
 
   if (isGoodbyeOnly(text)) {
@@ -215,20 +252,24 @@ function getSocialReply(text, languageCode) {
   return null;
 }
 
-function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
+function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = false }) {
   const isOpen = true;
   const zones = useZoneStore((state) => state.zones);
   const farmName = useSettingsStore((state) => state.farmName);
   const district = useSettingsStore((state) => state.district);
   const cropZ1 = useSettingsStore((state) => state.cropZ1);
   const cropZ2 = useSettingsStore((state) => state.cropZ2);
-  const initialLanguageRef = useRef(getInitialLanguage());
-
-  const [language, setLanguage] = useState(initialLanguageRef.current);
+  const controlMode = useModeStore((state) => state.mode);
+  const appLanguage = useSettingsStore((state) => state.language) || 'hi';
+  const setAppLanguage = useSettingsStore((state) => state.setLanguage);
+  const language = appLanguage;
   const [ttsEnabled, setTtsEnabled] = useState(getInitialTtsValue);
   const [draft, setDraft] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [hwConfirm, setHwConfirm] = useState(null); // { cmd, message }
+  const [isVoiceExperience, setIsVoiceExperience] = useState(startVoice);
+  const [openAiApiKey, setOpenAiApiKey] = useState('');
+  const [showOpenAiKey, setShowOpenAiKey] = useState(false);
   const [isOnline, setIsOnline] = useState(
     typeof navigator === 'undefined' ? true : navigator.onLine
   );
@@ -245,21 +286,20 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
     }),
     [cropZ1, cropZ2, district, farmName]
   );
-  const initialMessages = useMemo(
-    () => [buildWelcomeMessage(initialLanguageRef.current)],
-    []
-  );
+  const initialMessages = useMemo(() => [buildWelcomeMessage(appLanguage)], [appLanguage]);
 
   const { messages, apiMessages, appendMessage, removeMessage, resetMessages } = useChatHistory({
     storageKey: CHAT_STORAGE_KEY,
     maxMessages: 10,
     initialMessages,
+    language,
   });
 
   const scrollAnchorRef = useRef(null);
   const inputRef = useRef(null);
   const retryRequestsRef = useRef(new Map());
   const draftSnapshotRef = useRef('');
+  const voiceGreetingStartedRef = useRef(false);
 
   const farmContext = useMemo(
     () => formatZoneContext(zones, settings, language),
@@ -303,18 +343,10 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
     }
 
     try {
-      window.sessionStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-    } catch (_) {}
-  }, [language]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
       window.sessionStorage.setItem(TTS_STORAGE_KEY, String(ttsEnabled));
-    } catch (_) {}
+    } catch {
+      // Browser storage can be unavailable in private or restricted sessions.
+    }
   }, [ttsEnabled]);
 
   useEffect(() => {
@@ -376,29 +408,66 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
   // Auto-speak every assistant reply when TTS is enabled
   const speakReply = useCallback(async (text) => {
     if (ttsEnabled && text) {
-      await voice.speak(text, true);
+      await voice.speak(cleanAssistantText(text), true);
     }
   }, [ttsEnabled, voice]);
 
-  // Hardware command executor — called after farmer confirms
-  const executeHardwareCommand = useCallback((cmd) => {
+  // Hardware command executor — called only after an explicit farmer confirmation.
+  const executeHardwareCommand = useCallback(async (cmd) => {
     const mqttClient = window.__ks_mqtt__;
-    if (!mqttClient) {
+    if (controlMode !== 'act') {
+      const modeMessage = language === 'mr'
+        ? 'सिंचन नियंत्रित करण्यासाठी आधी ACT मोड सुरू करा.'
+        : language === 'en'
+        ? 'Please switch to ACT mode before controlling irrigation.'
+        : 'सिंचाई नियंत्रित करने के लिए पहले ACT मोड चालू करें।';
+      showToast(modeMessage, 'warning');
+      await speakReply(modeMessage);
+      return false;
+    }
+
+    if (!mqttClient || !cmd?.zoneId || !zones[cmd.zoneId]) {
       showToast('Hardware not connected', 'warning');
-      return;
+      return false;
     }
+
+    const zoneName = zones[cmd.zoneId]?.name || cmd.zoneId;
     if (cmd.intent === 'PUMP_ON' || cmd.intent === 'PUMP_OFF') {
-      mqttClient.publishPump?.(cmd.zoneId, cmd.intent === 'PUMP_ON', 'voice');
-      const zoneName = zones[cmd.zoneId]?.name || cmd.zoneId;
-      const msg = cmd.intent === 'PUMP_ON'
-        ? `${zoneName} सिंचाई शुरू हो गई`
-        : `${zoneName} पंप बंद हो गया`;
+      const turnOn = cmd.intent === 'PUMP_ON';
+      const pumpSent = mqttClient.publishPump?.(cmd.zoneId, turnOn, 'voice');
+      const valveSent = mqttClient.publishValve?.(cmd.zoneId, turnOn, 'voice');
+      if (!pumpSent && !valveSent) {
+        showToast('Hardware not connected', 'warning');
+        return false;
+      }
+
+      const msg = language === 'mr'
+        ? `${zoneName} मध्ये सिंचन ${turnOn ? 'सुरू झाले' : 'बंद झाले'}`
+        : language === 'en'
+        ? `Irrigation ${turnOn ? 'started' : 'stopped'} for ${zoneName}.`
+        : `${zoneName} सिंचाई ${turnOn ? 'शुरू हो गई' : 'बंद हो गई'}`;
       showToast(msg, 'success');
-      speakReply(msg);
+      await speakReply(msg);
+      return true;
     } else if (cmd.intent === 'VALVE_OPEN' || cmd.intent === 'VALVE_CLOSE') {
-      mqttClient.publishValve?.(cmd.zoneId, cmd.intent === 'VALVE_OPEN', 'voice');
+      const open = cmd.intent === 'VALVE_OPEN';
+      const sent = mqttClient.publishValve?.(cmd.zoneId, open, 'voice');
+      if (!sent) {
+        showToast('Hardware not connected', 'warning');
+        return false;
+      }
+
+      const msg = language === 'mr'
+        ? `${zoneName} चा वाल्व ${open ? 'उघडला' : 'बंद झाला'}`
+        : language === 'en'
+        ? `Valve ${open ? 'opened' : 'closed'} for ${zoneName}.`
+        : `${zoneName} का वाल्व ${open ? 'खुल गया' : 'बंद हो गया'}`;
+      showToast(msg, 'success');
+      await speakReply(msg);
+      return true;
     }
-  }, [zones, speakReply]);
+    return false;
+  }, [controlMode, language, zones, speakReply]);
 
   const handleSend = async (overrideText, { fromVoice = false, retryPayload = null } = {}) => {
     const rawText = (overrideText ?? draft).trim();
@@ -406,8 +475,51 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
       return;
     }
 
-    // Check for hardware voice command first
-    if (fromVoice || true) {
+    // Advanced voice mode keeps a short, safe command conversation alive:
+    // request -> zone -> explicit yes/no. No hardware action occurs before yes.
+    if (fromVoice && hwConfirm) {
+      if (hwConfirm.awaitingZone) {
+        const selectedCommand = parseFarmerCommand(
+          `${hwConfirm.cmd.raw} ${rawText}`,
+          Object.keys(zones)
+        );
+
+        if (selectedCommand?.zoneId) {
+          const confirmMsg = buildConfirmMessage(selectedCommand, zones, language);
+          appendMessage({ role: 'user', content: rawText });
+          appendMessage({ role: 'assistant', content: confirmMsg });
+          setHwConfirm({ cmd: selectedCommand, message: confirmMsg, awaitingZone: false });
+          await speakReply(confirmMsg);
+          voice.restartIfArmed();
+          return;
+        }
+
+        const zonePrompt = buildConfirmMessage(hwConfirm.cmd, zones, language);
+        appendMessage({ role: 'assistant', content: zonePrompt });
+        await speakReply(zonePrompt);
+        voice.restartIfArmed();
+        return;
+      }
+
+      const decision = getSpokenDecision(rawText);
+      if (decision !== null) {
+        appendMessage({ role: 'user', content: rawText });
+        const command = hwConfirm.cmd;
+        setHwConfirm(null);
+        if (decision) {
+          await executeHardwareCommand(command);
+        } else {
+          const cancelled = language === 'mr' ? 'ठीक आहे, कमांड रद्द केली.' : language === 'en' ? 'Okay, I cancelled that command.' : 'ठीक है, कमांड रद्द कर दी।';
+          appendMessage({ role: 'assistant', content: cancelled });
+          await speakReply(cancelled);
+        }
+        voice.restartIfArmed();
+        return;
+      }
+    }
+
+    // Check typed and spoken hardware commands before sending a request to the AI service.
+    {
       const availableZones = Object.keys(zones);
       const hwCmd = parseFarmerCommand(rawText, availableZones);
       if (hwCmd && (hwCmd.intent === 'PUMP_ON' || hwCmd.intent === 'PUMP_OFF' || hwCmd.intent === 'VALVE_OPEN' || hwCmd.intent === 'VALVE_CLOSE')) {
@@ -416,10 +528,11 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
           setDraft('');
         }
         const confirmMsg = buildConfirmMessage(hwCmd, zones, language);
-        // Show hardware confirm dialog
-        setHwConfirm({ cmd: hwCmd, message: confirmMsg });
+        // Keep the spoken dialogue active if Krishi still needs the zone.
+        setHwConfirm({ cmd: hwCmd, message: confirmMsg, awaitingZone: !hwCmd.zoneId });
         appendMessage({ role: 'assistant', content: confirmMsg });
         await speakReply(confirmMsg);
+        if (fromVoice) voice.restartIfArmed();
         return;
       }
     }
@@ -471,25 +584,33 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
         return;
       }
 
-      if (!hasGeminiKey) {
+      if (!hasGeminiKey && !openAiApiKey.trim()) {
         throw new Error('missing_key');
       }
 
-      const reply = await sendKisanChat({
-        messages: conversation,
-        preferredLanguage: responseLanguage,
-        farmContext,
-      });
+      const reply = openAiApiKey.trim()
+        ? await sendOpenAiVoiceChat({
+            apiKey: openAiApiKey,
+            messages: conversation,
+            preferredLanguage: responseLanguage,
+            farmContext,
+          })
+        : await sendKisanChat({
+            messages: conversation,
+            preferredLanguage: responseLanguage,
+            farmContext,
+          });
 
+      const assistantText = cleanAssistantText(reply.text);
       appendMessage({
         role: 'assistant',
-        content: reply.text,
+        content: assistantText,
         sources: reply.sources,
         grounded: reply.grounded,
       });
 
       // Auto-speak every reply (not just voice-triggered)
-      await speakReply(reply.text);
+      await speakReply(assistantText);
       if (fromVoice) voice.restartIfArmed();
     } catch (error) {
       const retryKey = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -532,7 +653,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
   };
 
   const handleLanguageChange = (nextLanguage) => {
-    setLanguage(nextLanguage);
+    setAppLanguage(nextLanguage);
     showToast(`Language switched to ${nextLanguage.toUpperCase()}`, 'info');
   };
 
@@ -544,10 +665,52 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
 
     if (!voice.isArmed && !voice.isListening) {
       draftSnapshotRef.current = draft;
+    } else {
+      voiceGreetingStartedRef.current = false;
     }
 
     voice.toggleListening();
   };
+
+  const startVoiceConversation = useCallback(async () => {
+    if (voiceGreetingStartedRef.current) {
+      return;
+    }
+
+    voiceGreetingStartedRef.current = true;
+    // The greeting is intentionally spoken even when normal chat sound is off:
+    // entering Voice mode is an explicit request for an audible conversation.
+    await voice.speak(copy.voiceGreeting, true);
+
+    if (!voice.isArmed && !voice.isListening) {
+      draftSnapshotRef.current = draft;
+      voice.toggleListening();
+    }
+  }, [copy.voiceGreeting, draft, voice]);
+
+  const openAdvancedVoice = () => {
+    setIsVoiceExperience(true);
+    void startVoiceConversation();
+  };
+
+  const closeAdvancedVoice = () => {
+    setIsVoiceExperience(false);
+    voiceGreetingStartedRef.current = false;
+    voice.stopRecognition(true);
+    voice.cancelSpeech();
+  };
+
+  useEffect(() => {
+    if (!startVoice || voiceGreetingStartedRef.current) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      void startVoiceConversation();
+    }, 80);
+
+    return () => window.clearTimeout(timer);
+  }, [startVoice, startVoiceConversation]);
 
   const quickReplies = QUICK_REPLIES[language] || QUICK_REPLIES.hi;
   const showQuickReplies =
@@ -584,12 +747,15 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[#16A34A]" />
-                    <h2 className="text-base font-black text-text-primary">KisanAI</h2>
+                    <h2 className="text-base font-black text-text-primary">Krishi AI</h2>
                     <span className="rounded-full bg-[#ecf7ed] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3d1a]">
                       {language === 'mr' ? 'सक्रिय' : language === 'en' ? 'Active' : 'सक्रिय'}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-text-secondary">{copy.subtitle}</p>
+                  <p className={`mt-1 text-[11px] font-semibold ${voice.isListening ? 'text-primary' : 'text-slate-500'}`}>
+                    {voice.isListening ? copy.listening : copy.agentHint}
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -614,6 +780,20 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
                   )}
                 </div>
               </div>
+
+              <button
+                type="button"
+                onClick={openAdvancedVoice}
+                disabled={!voice.supported || isTyping}
+                className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-3 py-2 text-left transition ${
+                  voice.isArmed
+                    ? 'border-primary/35 bg-primary/10 text-primary'
+                    : 'border-emerald-200 bg-[#f3fbf4] text-[#1a6030] hover:bg-[#e7f6e9]'
+                } ${!voice.supported || isTyping ? 'cursor-not-allowed opacity-60' : ''}`}
+              >
+                <span className="flex items-center gap-2 text-xs font-black"><Mic size={15} /> {voice.isArmed ? copy.endVoice : copy.advancedVoice}</span>
+                <span className="text-[10px] font-semibold opacity-75">{voice.isArmed ? copy.listening : copy.voiceModeHint}</span>
+              </button>
 
               <div className="mt-3 flex items-center justify-between gap-3">
                 <div className="flex items-center rounded-full border border-border bg-[#F7FAF5] p-1">
@@ -650,7 +830,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
               )}
 
               <div className="flex flex-col gap-3">
-                {messages.map((message) => (
+                {[buildWelcomeMessage(language), ...messages.filter((message) => !message.isWelcome)].map((message) => (
                   <MessageBubble
                     key={message.id}
                     message={message}
@@ -689,26 +869,36 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
                   </div>
                   <p className="flex-1 text-sm font-bold text-amber-900">{hwConfirm.message}</p>
                 </div>
-                <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      executeHardwareCommand(hwConfirm.cmd);
-                      setHwConfirm(null);
-                    }}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#1a3d1a] py-2.5 text-xs font-black text-white"
-                  >
-                    <CheckCircle2 size={14} />
-                    {language === 'mr' ? 'हो, करा' : language === 'en' ? 'Yes, do it' : 'हाँ, करें'}
-                  </button>
+                {hwConfirm.awaitingZone ? (
                   <button
                     type="button"
                     onClick={() => setHwConfirm(null)}
-                    className="flex-1 rounded-xl border border-border py-2.5 text-xs font-black text-text-secondary"
+                    className="mt-3 w-full rounded-xl border border-border py-2.5 text-xs font-black text-text-secondary"
                   >
-                    {language === 'mr' ? 'नाही' : language === 'en' ? 'Cancel' : 'रद्द करें'}
+                    {language === 'mr' ? 'रद्द करा' : language === 'en' ? 'Cancel command' : 'कमांड रद्द करें'}
                   </button>
-                </div>
+                ) : (
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void executeHardwareCommand(hwConfirm.cmd);
+                        setHwConfirm(null);
+                      }}
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#1a3d1a] py-2.5 text-xs font-black text-white"
+                    >
+                      <CheckCircle2 size={14} />
+                      {language === 'mr' ? 'हो, करा' : language === 'en' ? 'Yes, do it' : 'हाँ, करें'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHwConfirm(null)}
+                      className="flex-1 rounded-xl border border-border py-2.5 text-xs font-black text-text-secondary"
+                    >
+                      {language === 'mr' ? 'नाही' : language === 'en' ? 'Cancel' : 'रद्द करें'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -761,11 +951,126 @@ function ChatBotPanel({ embedded = false, closeChat = () => {} }) {
           </div>
         </div>
       </div>
+
+      {isVoiceExperience && (
+        <div className="fixed inset-0 z-[200] flex min-h-[100dvh] flex-col overflow-hidden bg-[#080a0b] text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(44,111,71,0.24),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(66,105,174,0.13),transparent_28%)]" />
+          <header className="relative z-10 flex items-center justify-between px-5 py-5 sm:px-8">
+            <div className="flex items-center gap-2 text-base font-black tracking-tight">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300"><AudioLines size={17} /></span>
+              Krishi Voice
+            </div>
+            <button
+              type="button"
+              onClick={closeAdvancedVoice}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+              aria-label={language === 'en' ? 'Exit voice mode' : 'Exit voice mode'}
+            >
+              <X size={20} />
+            </button>
+          </header>
+
+          <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pb-32 text-center">
+            <div className={`krishi-voice-orb ${voice.isListening ? 'krishi-voice-orb-listening' : ''} mb-8`} aria-hidden="true">
+              <div className="krishi-voice-orb-core"><AudioLines size={38} strokeWidth={1.7} /></div>
+            </div>
+            <p className="max-w-xl text-2xl font-medium tracking-tight text-white sm:text-3xl">
+              {hwConfirm?.message || (voice.isListening ? (draft || copy.listening) : copy.voiceReady)}
+            </p>
+            <p className="mt-3 max-w-md text-sm leading-6 text-white/55">{copy.voiceActionSafety}</p>
+
+            {hwConfirm && !hwConfirm.awaitingZone && (
+              <div className="mt-7 flex w-full max-w-sm gap-3 rounded-[24px] border border-amber-300/20 bg-amber-200/10 p-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void executeHardwareCommand(hwConfirm.cmd);
+                    setHwConfirm(null);
+                  }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-[#06240f] transition hover:bg-emerald-400"
+                >
+                  <CheckCircle2 size={17} /> {language === 'mr' ? 'हो, करा' : language === 'en' ? 'Yes, start' : 'हाँ, शुरू करें'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHwConfirm(null)}
+                  className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white/85 transition hover:bg-white/20"
+                >
+                  {language === 'mr' ? 'नाही' : language === 'en' ? 'Cancel' : 'रद्द करें'}
+                </button>
+              </div>
+            )}
+          </main>
+
+          <form
+            className="relative z-10 mx-auto mb-7 flex w-[min(94vw,760px)] items-center gap-2 rounded-[28px] border border-white/10 bg-white/[0.12] px-3 py-2 shadow-2xl backdrop-blur-xl"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSend();
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setShowOpenAiKey((visible) => !visible)}
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${showOpenAiKey ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10'}`}
+              aria-label="OpenAI API key settings"
+              title="OpenAI API key settings"
+            >
+              <Plus size={22} />
+            </button>
+            <input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder={copy.placeholder}
+              className="min-w-0 flex-1 bg-transparent py-3 text-base text-white outline-none placeholder:text-white/45"
+              aria-label={copy.placeholder}
+            />
+            <button
+              type="button"
+              onClick={handleVoiceClick}
+              disabled={!voice.supported || isTyping}
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition ${voice.isListening ? 'bg-emerald-400 text-[#05250f] shadow-[0_0_0_8px_rgba(74,222,128,0.14)]' : 'bg-white/10 text-white hover:bg-white/20'} ${!voice.supported || isTyping ? 'cursor-not-allowed opacity-50' : ''}`}
+              aria-label={voice.isListening ? 'Stop listening' : 'Start listening'}
+            >
+              {voice.isListening ? <AudioLines size={22} /> : <Mic size={21} />}
+            </button>
+            <button
+              type="submit"
+              disabled={!draft.trim() || isTyping}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#111] transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-35"
+              aria-label="Send message"
+            >
+              <Send size={19} />
+            </button>
+          </form>
+
+          {showOpenAiKey && (
+            <div className="relative z-10 mx-auto -mt-4 mb-7 w-[min(94vw,760px)] rounded-2xl border border-white/10 bg-[#17191c]/95 p-3 shadow-2xl backdrop-blur-xl">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 text-xs font-black text-white"><KeyRound size={14} className="text-emerald-300" /> OpenAI key · gpt-4o-mini</p>
+                {openAiApiKey && (
+                  <button type="button" onClick={() => setOpenAiApiKey('')} className="text-[11px] font-bold text-white/60 hover:text-white">Clear</button>
+                )}
+              </div>
+              <input
+                type="password"
+                value={openAiApiKey}
+                onChange={(event) => setOpenAiApiKey(event.target.value)}
+                placeholder="Paste your OpenAI API key for this session"
+                autoComplete="off"
+                spellCheck="false"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-emerald-300/60"
+              />
+              <p className="mt-2 text-[10px] leading-4 text-white/45">Used only in this browser session. Never saved to this device or project. Use a server-side proxy before publishing this app.</p>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
 
-export default function ChatBot({ embedded = false }) {
+export default function ChatBot({ embedded = false, startVoice = false }) {
   const widgetIsOpen = useChatWidgetStore((state) => state.isOpen);
   const widgetOpen = useChatWidgetStore((state) => state.open);
   const widgetClose = useChatWidgetStore((state) => state.close);
@@ -792,5 +1097,5 @@ export default function ChatBot({ embedded = false }) {
     );
   }
 
-  return <ChatBotPanel embedded={embedded} closeChat={closeChat} />;
+  return <ChatBotPanel embedded={embedded} closeChat={closeChat} startVoice={startVoice} />;
 }

@@ -51,6 +51,21 @@ export default function CropSuggestionCard({ mandiName, historyData }) {
 
   if (!prediction) return null;
 
+  if (prediction.status === 'collecting-history') {
+    return (
+      <div className="mt-6 rounded-[28px] border border-sky-200 bg-sky-50 p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-sky-900">
+          <Brain size={20} />
+          <h2 className="text-lg font-black">AI Crop Advisor</h2>
+          <span className="ml-auto rounded-full bg-sky-100 px-2 py-1 text-[10px] font-black uppercase text-sky-800">
+            Collecting data
+          </span>
+        </div>
+        <p className="mt-3 text-sm font-semibold leading-relaxed text-sky-900/80">{prediction.reasoning}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-6 overflow-hidden rounded-[28px] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-lg">
       <div className="mb-4 flex items-center gap-2 text-emerald-800">
