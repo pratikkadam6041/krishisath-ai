@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { AudioLines, KeyRound, MessageCircle, Mic, Plus, Send, Volume2, VolumeX, X, WifiOff, Zap, CheckCircle2 } from 'lucide-react';
 import { sendKisanChat } from '../api/kisanChat.js';
+import { sendPuterChat } from '../api/puterChat.js';
 import { sendOpenAiVoiceChat } from '../api/openaiVoiceChat.js';
 import { offlineKrishiResponse } from '../ai-ml/offlineKrishi.js';
 import { createChatMessage, useChatHistory } from '../hooks/useChatHistory.js';
@@ -112,6 +113,27 @@ const QUICK_REPLIES = {
   mr: ['माझ्या पिकासाठी सल्ला', 'आजचा मंडी भाव', 'Pest control tips', 'PM Kisan status'],
 };
 
+const VOICE_COMMAND_EXAMPLES = {
+  hi: [
+    'Zone one pump चालू करा',
+    'Zone two pump बंद करा',
+    'झोन एक पंप सुरू करा',
+    'झोन दोन पंप बंद करा',
+  ],
+  en: [
+    'Zone one pump on',
+    'Zone two pump off',
+    'Turn on zone one pump',
+    'Stop zone two pump',
+  ],
+  mr: [
+    'Zone one pump चालू करा',
+    'Zone two pump बंद करा',
+    'झोन एक पंप सुरू करा',
+    'झोन दोन पंप बंद करा',
+  ],
+};
+
 const NOOP = () => {};
 
 function cleanAssistantText(value) {
@@ -210,6 +232,17 @@ function getChatErrorState(error, copy) {
     content: copy.serverBusy,
     retryable: true,
   };
+}
+
+function shouldUseOfflineFallback(error) {
+  const status = error?.status;
+  const message = String(error?.message || '');
+  return (
+    status === 'RESOURCE_EXHAUSTED' ||
+    status === 'MISSING_API_KEY' ||
+    error?.code === 429 ||
+    /quota|Missing VITE_GEMINI_API_KEY|Gemini request failed|API key/i.test(message)
+  );
 }
 
 function getSocialReply(text, languageCode) {
@@ -584,22 +617,34 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
         return;
       }
 
-      if (!hasGeminiKey && !openAiApiKey.trim()) {
+      if (!hasGeminiKey && !openAiApiKey.trim() && typeof window !== 'undefined' && !window.puter?.ai?.chat) {
         throw new Error('missing_key');
       }
 
-      const reply = openAiApiKey.trim()
-        ? await sendOpenAiVoiceChat({
-            apiKey: openAiApiKey,
-            messages: conversation,
-            preferredLanguage: responseLanguage,
-            farmContext,
-          })
-        : await sendKisanChat({
+      let reply;
+      if (openAiApiKey.trim()) {
+        reply = await sendOpenAiVoiceChat({
+          apiKey: openAiApiKey,
+          messages: conversation,
+          preferredLanguage: responseLanguage,
+          farmContext,
+        });
+      } else {
+        try {
+          reply = await sendPuterChat({
             messages: conversation,
             preferredLanguage: responseLanguage,
             farmContext,
           });
+        } catch (puterError) {
+          if (!hasGeminiKey) throw puterError;
+          reply = await sendKisanChat({
+            messages: conversation,
+            preferredLanguage: responseLanguage,
+            farmContext,
+          });
+        }
+      }
 
       const assistantText = cleanAssistantText(reply.text);
       appendMessage({
@@ -613,6 +658,19 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
       await speakReply(assistantText);
       if (fromVoice) voice.restartIfArmed();
     } catch (error) {
+      if (shouldUseOfflineFallback(error)) {
+        const offlineReply = offlineKrishiResponse(
+          rawText,
+          farmContext?.zones,
+          farmContext?.weather,
+          responseLanguage
+        );
+        appendMessage({ role: 'assistant', content: offlineReply });
+        await speakReply(offlineReply);
+        if (fromVoice) voice.restartIfArmed();
+        return;
+      }
+
       const retryKey = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
       const isOfflineError = error.message === 'offline';
       const errorState = isOfflineError
@@ -978,6 +1036,31 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
               {hwConfirm?.message || (voice.isListening ? (draft || copy.listening) : copy.voiceReady)}
             </p>
             <p className="mt-3 max-w-md text-sm leading-6 text-white/55">{copy.voiceActionSafety}</p>
+
+            <div className="mt-6 w-full max-w-md rounded-[24px] border border-emerald-300/15 bg-white/[0.08] p-4 text-left shadow-2xl backdrop-blur">
+              <p className="text-sm font-black text-emerald-200">
+                {language === 'mr' ? 'डेमोसाठी असे बोला' : language === 'en' ? 'Say this for demo' : 'डेमो के लिए ऐसे बोलें'}
+              </p>
+              <div className="mt-3 grid gap-2">
+                {(VOICE_COMMAND_EXAMPLES[language] || VOICE_COMMAND_EXAMPLES.hi).map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => setDraft(example)}
+                    className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-left text-sm font-bold text-white/90 transition hover:bg-white/10"
+                  >
+                    “{example}”
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-xs font-semibold leading-5 text-white/45">
+                {language === 'mr'
+                  ? 'टीप: “one/two” हळू बोला. Chrome कधी कधी 1 आणि 2 चुकीचे ऐकतो.'
+                  : language === 'en'
+                    ? 'Tip: say “one/two” slowly. Chrome sometimes hears digits incorrectly.'
+                    : 'Tip: “one/two” धीरे बोलें। Chrome कभी-कभी 1 और 2 गलत सुनता है.'}
+              </p>
+            </div>
 
             {hwConfirm && !hwConfirm.awaitingZone && (
               <div className="mt-7 flex w-full max-w-sm gap-3 rounded-[24px] border border-amber-300/20 bg-amber-200/10 p-3">

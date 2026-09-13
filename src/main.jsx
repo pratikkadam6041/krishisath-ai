@@ -16,9 +16,16 @@ async function clearDevServiceWorkers() {
   }
 }
 
-// Register Service Worker for PWA (Enabled in DEV for testing)
+// Register Service Worker for production PWA only.
+// In local demo/dev, clear it so Chrome profiles do not keep stale dashboard code.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    if (import.meta.env.DEV) {
+      clearDevServiceWorkers().catch((error) => {
+        console.log('Dev SW/cache cleanup failed: ', error);
+      });
+      return;
+    }
 
     navigator.serviceWorker.register('/sw.js').catch((error) => {
       console.log('SW registration failed: ', error);

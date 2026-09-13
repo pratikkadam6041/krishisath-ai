@@ -8,33 +8,44 @@
 
 // Helper to convert word numbers to digits
 function mapNum(val) {
+  const clean = String(val || '').toLowerCase().trim();
   const map = {
-    'one': 1, 'ek': 1, 'एक': 1,
-    'two': 2, 'do': 2, 'don': 2, 'दो': 2, 'दोन': 2,
-    'three': 3, 'teen': 3, 'तीन': 3,
-    'four': 4, 'char': 4, 'चार': 4
+    '1': 1, '१': 1, 'one': 1, 'won': 1, 'wan': 1, 'wun': 1, 'van': 1, 'vun': 1, 'first': 1, 'वन': 1, 'ek': 1, 'eka': 1, 'एक': 1, 'एका': 1, 'पहिला': 1, 'पहिली': 1, 'पहिल्या': 1, 'पहिले': 1,
+    '2': 2, '२': 2, 'two': 2, 'to': 2, 'too': 2, 'tu': 2, 'do': 2, 'don': 2, 'second': 2, 'दो': 2, 'दोन': 2, 'दुसरा': 2, 'दुसरी': 2, 'दुसऱ्या': 2, 'दुसरे': 2,
+    '3': 3, '३': 3, 'three': 3, 'tree': 3, 'teen': 3, 'तीन': 3, 'तिसरा': 3, 'तिसरी': 3, 'तिसऱ्या': 3,
+    '4': 4, '४': 4, 'four': 4, 'for': 4, 'char': 4, 'चार': 4, 'चौथा': 4, 'चौथी': 4, 'चौथ्या': 4
   };
-  return map[val.toLowerCase()] || val;
+  return map[clean] || clean;
 }
 
 // Zone identification patterns
+const ZONE_NUMBER_WORDS = 'one|won|wan|wun|van|vun|first|वन|two|too|to|tu|second|three|tree|four|for|ek|eka|do|don|teen|char|एक|एका|दो|दोन|तीन|चार|पहिला|पहिली|पहिल्या|पहिले|दुसरा|दुसरी|दुसऱ्या|दुसरे|तिसरा|तिसरी|तिसऱ्या|चौथा|चौथी|चौथ्या|[1-4]|[१-४]';
 const ZONE_PATTERNS = [
-  { regex: /zone[\s-]?(one|two|three|four|ek|do|don|teen|char|\d+)/i, extract: (m) => `z${mapNum(m[1])}` },
-  { regex: /(?:ज़ोन|जोन)[\s]?(एक|दो|तीन|चार|\d+)/u, extract: (m) => `z${mapNum(m[1])}` },
-  { regex: /झोन[\s]?(एक|दोन|तीन|चार|\d+)/u, extract: (m) => `z${mapNum(m[1])}` },
-  { regex: /\bz(\d+)\b/i, extract: (m) => `z${m[1]}` },
+  { regex: new RegExp(`(?:zone|zones|jon|john|झोन|जोन|ज़ोन|जॉन)\\s*(?:number|no\\.?|नंबर|क्रमांक|नं)?\\s*(${ZONE_NUMBER_WORDS})`, 'iu'), extract: (m) => `z${mapNum(m[1])}` },
+  { regex: new RegExp(`(${ZONE_NUMBER_WORDS})\\s*(?:number|no\\.?|नंबर|क्रमांक|नं)?\\s*(?:zone|zones|झोन|जोन|ज़ोन)`, 'iu'), extract: (m) => `z${mapNum(m[1])}` },
+  { regex: /\bz\s*([1-4])\b/i, extract: (m) => `z${m[1]}` },
+  { regex: /झेड\s*([१-४1-4])/u, extract: (m) => `z${mapNum(m[1])}` },
   { regex: /north\s*field/i, extract: () => 'z1' },
   { regex: /south\s*orchard/i, extract: () => 'z2' },
   { regex: /नॉर्थ|north/i, extract: () => 'z1' },
   { regex: /साउथ|south/i, extract: () => 'z2' },
 ];
 
+const LOOSE_ZONE_NUMBERS = [
+  { zoneId: 'z1', regex: /(?:^|[\s,.;:-])(1|१|one|won|wan|wun|van|vun|first|ek|eka|एक|एका|वन|पहिला|पहिली|पहिल्या|पहिले)(?=$|[\s,.;:-])/iu },
+  { zoneId: 'z2', regex: /(?:^|[\s,.;:-])(2|२|two|too|tu|second|do|don|दो|दोन|दुसरा|दुसरी|दुसऱ्या|दुसरे)(?=$|[\s,.;:-])/iu },
+  { zoneId: 'z3', regex: /(?:^|[\s,.;:-])(3|३|three|tree|teen|तीन|तिसरा|तिसरी|तिसऱ्या)(?=$|[\s,.;:-])/iu },
+  { zoneId: 'z4', regex: /(?:^|[\s,.;:-])(4|४|four|for|char|चार|चौथा|चौथी|चौथ्या)(?=$|[\s,.;:-])/iu },
+];
+
 // Action patterns — pump ON
 const PUMP_ON_PATTERNS = [
   /(pump|water|irrigation).*?\b(on|start|chalu|chaalu|shuru|suru|chal)\b/i,
+  /(pump|water|irrigation|paani|pani).*?(चालू|चालु|सुरू|करा|लावा|ऑन|शुरू)/iu,
+  /(चालू|चालु|सुरू|लावा|ऑन|शुरू).*?(pump|water|irrigation|paani|pani)/iu,
   /\b(start|turn\s*on|open)\b.*?(pump|water|irrigation)/i,
-  /(पंप|सिंचाई).*?(चालू|शुरू|ऑन|चालु|सुरू)/u,
-  /(चालू|शुरू|ऑन|चालु|सुरू).*?(पंप|सिंचाई)/u,
+  /(पंप|पाणी|सिंचन|सिंचाई).*?(चालू|चालु|सुरू|करा|लावा|ऑन|शुरू)/u,
+  /(चालू|चालु|सुरू|लावा|ऑन|शुरू).*?(पंप|पाणी|सिंचन|सिंचाई)/u,
   /(paani|pani).*?\b(do|de|daal|chalu|chaalu|suru)\b/i,
   /(पानी).*?(दो|दे|डाल|चालू|शुरू|सुरू)/u,
 ];
@@ -42,9 +53,11 @@ const PUMP_ON_PATTERNS = [
 // Action patterns — pump OFF
 const PUMP_OFF_PATTERNS = [
   /(pump|water|irrigation|paani|pani).*?\b(off|stop|band|bandh|roko|thamba|thambav|thambwa|thambawa)\b/i,
+  /(pump|water|irrigation|paani|pani).*?(बंद|बंध|रोको|बन्द|ऑफ|ऑफ़|थांबवा|थांबव|थांबा)/iu,
+  /(बंद|बंध|रोको|बन्द|ऑफ|ऑफ़|थांबवा|थांबव|थांबा).*?(pump|water|irrigation|paani|pani)/iu,
   /\b(stop|turn\s*off|shut\s*off|close|band|bandh)\b.*?(pump|water|irrigation|paani|pani)/i,
-  /(पंप|सिंचाई|पानी).*?(बंद|बंध|रोको|बन्द|ऑफ|ऑफ़|थांबवा|थांबव|थांबा)/u,
-  /(बंद|बंध|रोको|बन्द|ऑफ|ऑफ़|थांबवा|थांबव|थांबा).*?(पंप|सिंचाई|पानी)/u,
+  /(पंप|पाणी|सिंचन|सिंचाई|पानी).*?(बंद|बंध|रोको|बन्द|ऑफ|ऑफ़|थांबवा|थांबव|थांबा)/u,
+  /(बंद|बंध|रोको|बन्द|ऑफ|ऑफ़|थांबवा|थांबव|थांबा).*?(पंप|पाणी|सिंचन|सिंचाई|पानी)/u,
 ];
 
 // Action patterns — valve open
@@ -89,6 +102,15 @@ function detectZone(text, availableZones = []) {
       }
     }
   }
+
+  // Chrome speech recognition sometimes drops/mishears the word "zone" in
+  // mixed Marathi-English commands. If there is exactly one clear zone number,
+  // use it instead of asking the farmer again.
+  const looseMatches = LOOSE_ZONE_NUMBERS
+    .filter(({ zoneId, regex }) => regex.test(text) && (availableZones.length === 0 || availableZones.includes(zoneId)))
+    .map(({ zoneId }) => zoneId);
+  if (looseMatches.length === 1) return looseMatches[0];
+
   // Default to first zone if only one exists
   if (availableZones.length === 1) return availableZones[0];
   return null;

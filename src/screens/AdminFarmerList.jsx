@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import { useUserStore, SUBSCRIPTION_TIERS } from '../store/userStore.js';
+import { useFarmerStore } from '../store/farmerStore.js';
 import { useActivityLogStore } from '../store/activityLogStore.js';
 
 const STATUS_FILTER_OPTIONS = ['All', 'APPROVED', 'PENDING', 'SUSPENDED'];
@@ -39,6 +40,52 @@ function normalizePhone(phone = '') {
   return digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
 }
 
+function normalizeStatus(status = '') {
+  if (status === 'Active') return 'APPROVED';
+  return status || 'PENDING';
+}
+
+function mergeFarmerRecords(users = {}, directoryFarmers = []) {
+  const records = new Map();
+
+  Object.values(users || {}).forEach((user) => {
+    const phone = normalizePhone(user.phone);
+    records.set(phone || user.id, {
+      ...user,
+      phone: user.phone || phone,
+      firstName: user.firstName || 'Farmer',
+      status: normalizeStatus(user.status),
+      tier: user.tier || SUBSCRIPTION_TIERS.BASIC,
+      joined: user.registeredAt
+        ? new Date(user.registeredAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : user.joined,
+      source: 'App account',
+    });
+  });
+
+  (directoryFarmers || []).forEach((farmer) => {
+    const phone = normalizePhone(farmer.phone);
+    const key = phone || farmer.id;
+    const existing = records.get(key) || {};
+    records.set(key, {
+      ...existing,
+      id: existing.id || farmer.id,
+      phone: existing.phone || farmer.phone || phone,
+      firstName: farmer.name || existing.firstName || 'Farmer',
+      district: farmer.district || existing.district || '',
+      village: farmer.village || existing.village || '',
+      crops: farmer.crops || existing.crops || [],
+      acres: farmer.acres || existing.acres || '',
+      tier: existing.tier || farmer.plan || SUBSCRIPTION_TIERS.BASIC,
+      status: normalizeStatus(existing.status || farmer.status),
+      joined: existing.joined || farmer.joined,
+      source: existing.source ? `${existing.source} + onboarding` : 'Onboarding profile',
+    });
+  });
+
+  return Array.from(records.values()).filter((farmer) => farmer.phone || farmer.id);
+}
+
 export default function AdminFarmerList() {
   const navigate = useNavigate();
   const [search, setSearch]             = useState('');
@@ -48,14 +95,30 @@ export default function AdminFarmerList() {
   
   // Real dynamic users from local store
   const allUsersMap = useUserStore((s) => s.users);
+  const syncUsers = useUserStore((s) => s.syncWithServer);
   const updateUserStatus = useUserStore((s) => s.updateUserStatus);
   const updateUserTier = useUserStore((s) => s.updateUserTier);
+  const directoryFarmers = useFarmerStore((s) => s.farmers);
+  const syncFarmers = useFarmerStore((s) => s.syncWithServer);
+  const addOrUpdateFarmer = useFarmerStore((s) => s.addOrUpdateFarmer);
   
-  const farmers = Object.values(allUsersMap);
+  const farmers = mergeFarmerRecords(allUsersMap, directoryFarmers);
   const activityEvents = useActivityLogStore((state) => state.events);
+  const syncActivityEvents = useActivityLogStore((state) => state.syncWithServer);
   const selectedActivityEvents = selectedFarmerActivity
-    ? activityEvents.filter((event) => event.farmerPhone === selectedFarmerActivity.phone)
+    ? activityEvents.filter((event) => normalizePhone(event.farmerPhone) === normalizePhone(selectedFarmerActivity.phone))
     : [];
+
+  useEffect(() => {
+    const syncAll = () => {
+      syncUsers?.();
+      syncFarmers?.();
+      syncActivityEvents?.();
+    };
+    syncAll();
+    const intervalId = window.setInterval(syncAll, 3_000);
+    return () => window.clearInterval(intervalId);
+  }, [syncUsers, syncFarmers, syncActivityEvents]);
 
   /* ─── Filtering ─── */
   const filtered = farmers.filter((f) => {
@@ -64,6 +127,8 @@ export default function AdminFarmerList() {
       !q ||
       f.firstName?.toLowerCase().includes(q) ||
       f.id?.toLowerCase().includes(q) ||
+      f.district?.toLowerCase().includes(q) ||
+      f.village?.toLowerCase().includes(q) ||
       normalizePhone(f.phone).includes(q.replace(/\D/g, ''));
     const matchStatus = statusFilter === 'All' || f.status === statusFilter;
     return matchSearch && matchStatus;
@@ -131,7 +196,20 @@ export default function AdminFarmerList() {
     // In a real app, this would also create a profile. For now, just register/update user.
     useUserStore.getState().registerUser(p, formData.name);
     useUserStore.getState().updateUserStatus(p, 'APPROVED'); // Auto-approve added farmers
-    useUserStore.getState().updateUserTier(p, formData.plan.toUpperCase());
+    useUserStore.getState().updateUserTier(p, formData.plan);
+    addOrUpdateFarmer({
+      phone: p,
+      name: formData.name,
+      district: formData.district,
+      village: formData.village,
+      crops: formData.crops
+        .split(',')
+        .map((crop) => crop.trim())
+        .filter(Boolean),
+      acres: formData.acres,
+      plan: formData.plan,
+      zones: 2,
+    });
     resetModal();
   }
 
@@ -279,10 +357,10 @@ export default function AdminFarmerList() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5 text-slate-300">
                           <MapPin size={13} className="shrink-0 text-slate-500" />
-                          <span>Maharashtra</span>
+                          <span>{[farmer.village, farmer.district].filter(Boolean).join(', ') || 'Location not added'}</span>
                         </div>
                         <p className="mt-0.5 text-xs text-slate-500">
-                          Registered via App
+                          {farmer.source || 'Registered via App'}
                         </p>
                       </td>
 
@@ -314,7 +392,14 @@ export default function AdminFarmerList() {
 
                       {/* Actions */}
                       <td className="px-6 py-4">
-                        <div className="relative">
+                        <div className="relative flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => { setSelectedFarmerActivity(farmer); setActionMenu(null); }}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500/10 px-3 py-1.5 text-xs font-bold text-sky-300 hover:bg-sky-500/15"
+                          >
+                            <Activity size={14} /> History
+                          </button>
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setActionMenu(actionMenu === farmer.phone ? null : farmer.phone); }}

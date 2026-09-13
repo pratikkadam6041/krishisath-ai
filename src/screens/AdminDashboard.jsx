@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
-  DollarSign,
   HardDrive,
   LayoutDashboard,
   LogOut,
@@ -18,7 +17,6 @@ import {
   Shield,
   TrendingUp,
   Users,
-  Wifi,
   X,
   Zap,
   Sliders,
@@ -29,6 +27,7 @@ import { useQueryStore } from '../store/queryStore';
 import { useZoneStore } from '../store/zoneStore';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useUserStore } from '../store/userStore';
+import { useFarmerStore } from '../store/farmerStore';
 import { readSoilReportReviewQueue, updateSoilReportReview } from '../utils/soilReportGuard';
 
 const nowTimestamp = () => Date.now();
@@ -51,7 +50,7 @@ function StatCard({ title, value, subtitle, icon, trend, color = 'emerald' }) {
         <div className={`rounded-xl p-3 ${colors[color]}`}>{icon}</div>
       </div>
       <div className="mt-4 flex items-center gap-2">
-        <span className={`text-sm font-bold ${trend.startsWith('+') ? 'text-emerald-400' : 'text-red-400'}`}>{trend}</span>
+        <span className={`text-sm font-bold ${trend.startsWith('+') || trend === 'Live' || trend === 'Real' ? 'text-emerald-400' : 'text-slate-400'}`}>{trend}</span>
         <span className="text-sm text-slate-500">{subtitle}</span>
       </div>
     </div>
@@ -108,6 +107,46 @@ function formatReviewTime(ts) {
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
   return `${Math.floor(diff / 3600)} hr ago`;
+}
+
+function normalizePhone(phone = '') {
+  const digits = String(phone).replace(/\D/g, '');
+  return digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
+}
+
+function joinFarmerRecords(users = {}, directoryFarmers = []) {
+  const records = new Map();
+
+  Object.values(users || {}).forEach((user) => {
+    const phone = normalizePhone(user.phone);
+    records.set(phone || user.id, {
+      id: user.id,
+      phone: user.phone || phone,
+      name: user.firstName || 'Farmer',
+      status: user.status || 'PENDING',
+      tier: user.tier || 'Basic',
+      joinedAt: user.registeredAt || 0,
+      source: 'App account',
+    });
+  });
+
+  (directoryFarmers || []).forEach((farmer) => {
+    const phone = normalizePhone(farmer.phone);
+    const key = phone || farmer.id;
+    const existing = records.get(key) || {};
+    records.set(key, {
+      ...existing,
+      id: existing.id || farmer.id,
+      phone: existing.phone || farmer.phone || phone,
+      name: farmer.name || existing.name || 'Farmer',
+      status: existing.status || farmer.status || 'Active',
+      tier: existing.tier || farmer.plan || 'Basic',
+      joinedAt: existing.joinedAt || farmer.registeredAt || 0,
+      source: existing.source ? `${existing.source} + directory` : 'Farmer directory',
+    });
+  });
+
+  return Array.from(records.values()).filter((farmer) => farmer.phone || farmer.id);
 }
 
 function SoilReportApprovalQueue() {
@@ -247,10 +286,30 @@ function SoilReportApprovalQueue() {
 
 function OverviewSection() {
   const users = useUserStore(s => s.users);
-  const activeFarmersCount = Object.values(users).filter((user) => user.status !== 'SUSPENDED').length;
+  const syncUsers = useUserStore(s => s.syncWithServer);
+  const directoryFarmers = useFarmerStore(s => s.farmers);
+  const syncFarmers = useFarmerStore(s => s.syncWithServer);
+  const realFarmers = joinFarmerRecords(users, directoryFarmers);
+  const activeFarmersCount = realFarmers.filter((farmer) => farmer.status !== 'SUSPENDED').length;
+  const purchasedUsersCount = realFarmers.length;
+  const pendingApprovalsCount = realFarmers.filter((farmer) => farmer.status === 'PENDING').length;
   const queries = useQueryStore(s => s.queries);
+  const syncQueries = useQueryStore(s => s.syncWithServer);
   const fieldEvents = useActivityLogStore(s => s.events);
+  const syncActivityEvents = useActivityLogStore(s => s.syncWithServer);
   const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    const syncAll = () => {
+      syncUsers?.();
+      syncFarmers?.();
+      syncQueries?.();
+      syncActivityEvents?.();
+    };
+    syncAll();
+    const intervalId = window.setInterval(syncAll, 3_000);
+    return () => window.clearInterval(intervalId);
+  }, [syncUsers, syncFarmers, syncQueries, syncActivityEvents]);
 
   useEffect(() => {
     const updateClock = () => setCurrentTime(nowTimestamp());
@@ -293,10 +352,10 @@ function OverviewSection() {
       </div>
 
       <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Active Farmers" value={activeFarmersCount.toLocaleString()} subtitle="currently active" trend="+12%" icon={<Users size={22} />} color="emerald" />
-        <StatCard title="Monthly Revenue" value="₹1.2M" subtitle="vs last month" trend="+8.4%" icon={<DollarSign size={22} />} color="sky" />
-        <StatCard title="Platform ROI" value="342%" subtitle="avg. yield improvement" trend="+24%" icon={<TrendingUp size={22} />} color="amber" />
-        <StatCard title="System Uptime" value="99.9%" subtitle="all operational zones" trend="+0.1%" icon={<Server size={22} />} color="emerald" />
+        <StatCard title="Purchased Users" value={purchasedUsersCount.toLocaleString()} subtitle="real accounts in admin" trend="Real" icon={<Users size={22} />} color="emerald" />
+        <StatCard title="Active Farmers" value={activeFarmersCount.toLocaleString()} subtitle="not suspended" trend="Live" icon={<CheckCircle2 size={22} />} color="sky" />
+        <StatCard title="Pending Approvals" value={pendingApprovalsCount.toLocaleString()} subtitle="need admin review" trend="Live" icon={<AlertCircle size={22} />} color="amber" />
+        <StatCard title="Field Events" value={(fieldEvents || []).length.toLocaleString()} subtitle="sensor and command history" trend="Live" icon={<Zap size={22} />} color="emerald" />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
@@ -321,34 +380,44 @@ function OverviewSection() {
           </div>
         </div>
 
-        {/* System Health */}
+        {/* Farmer access */}
         <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6">
-          <h2 className="mb-5 text-xl font-black text-white">System Health</h2>
-          <div className="space-y-5">
-            {[
-              { label: 'API Latency',  value: '42ms', pct: 15, barColor: '#10b981', textColor: '#34d399' },
-              { label: 'MQTT Load',   value: '24%',  pct: 24, barColor: '#10b981', textColor: '#34d399' },
-              { label: 'DB Storage',  value: '78%',  pct: 78, barColor: '#f59e0b', textColor: '#fbbf24' },
-              { label: 'InfluxDB',    value: '51%',  pct: 51, barColor: '#0ea5e9', textColor: '#38bdf8' },
-              { label: 'Zones Online',value: '98%',  pct: 98, barColor: '#10b981', textColor: '#34d399' },
-            ].map((m) => (
-              <div key={m.label}>
-                <div className="mb-1.5 flex justify-between text-sm">
-                  <span className="font-medium text-slate-300">{m.label}</span>
-                  <span className="font-bold" style={{ color: m.textColor }}>{m.value}</span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${m.pct}%`, backgroundColor: m.barColor }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-            <div className="flex items-center gap-2">
-              <Wifi size={16} className="text-emerald-400" />
-              <p className="text-sm font-bold text-emerald-300">All Systems Operational</p>
+          <h2 className="mb-5 text-xl font-black text-white">Farmer Access</h2>
+          {realFarmers.length === 0 ? (
+            <p className="text-sm text-slate-500">No real farmers registered yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {realFarmers.slice(0, 5).map((farmer) => {
+                const phone = normalizePhone(farmer.phone);
+                const eventsCount = (fieldEvents || []).filter((event) => normalizePhone(event.farmerPhone) === phone).length;
+                return (
+                  <button
+                    key={farmer.id || farmer.phone}
+                    type="button"
+                    onClick={() => navigate('/admin-portal/farmers')}
+                    className="w-full rounded-2xl bg-slate-800/50 p-4 text-left transition-colors hover:bg-slate-800"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-white">{farmer.name}</p>
+                        <p className="mt-1 text-xs text-slate-500">{farmer.phone || farmer.id}</p>
+                      </div>
+                      <span className="rounded-full bg-sky-500/10 px-3 py-1 text-xs font-black text-sky-300">
+                        {eventsCount} events
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={() => navigate('/admin-portal/farmers')}
+            className="mt-5 w-full rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-300 hover:bg-emerald-500/15"
+          >
+            Open Farmer Directory
+          </button>
         </div>
       </div>
 

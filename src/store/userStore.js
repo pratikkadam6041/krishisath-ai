@@ -8,6 +8,15 @@ export const SUBSCRIPTION_TIERS = {
   ENTERPRISE: 'Enterprise',
 };
 
+function postLocalDb(payload) {
+  if (typeof fetch !== 'function') return;
+  fetch('/api/db', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
+
 // Mock admin data - in a real app this would be in Firebase
 // Connected to Vite Local Backend API for cross-browser sync
 export const useUserStore = create(
@@ -43,7 +52,7 @@ export const useUserStore = create(
           title: 'New farmer registered',
           detail: `Phone ${phone} created a Basic account and is awaiting admin approval.`,
         });
-        fetch('/api/db', { method: 'POST', body: JSON.stringify({ users: newUsers }) });
+        postLocalDb({ users: newUsers });
         return newUser;
       },
 
@@ -52,7 +61,7 @@ export const useUserStore = create(
         if (!users[phone]) return;
         const newUsers = { ...users, [phone]: { ...users[phone], status } };
         set({ users: newUsers });
-        fetch('/api/db', { method: 'POST', body: JSON.stringify({ users: newUsers }) });
+        postLocalDb({ users: newUsers });
       },
 
       updateUserTier: (phone, tier) => {
@@ -71,7 +80,7 @@ export const useUserStore = create(
         
         const newUsers = { ...users, [phone]: { ...users[phone], tier, features } };
         set({ users: newUsers });
-        fetch('/api/db', { method: 'POST', body: JSON.stringify({ users: newUsers }) });
+        postLocalDb({ users: newUsers });
       },
 
       toggleUserFeature: (phone, featureKey, value) => {
@@ -86,7 +95,7 @@ export const useUserStore = create(
           }
         };
         set({ users: newUsers });
-        fetch('/api/db', { method: 'POST', body: JSON.stringify({ users: newUsers }) });
+        postLocalDb({ users: newUsers });
       },
 
       getUser: (phone) => get().users[phone],
@@ -99,7 +108,9 @@ export const useUserStore = create(
           const res = await fetch('/api/db');
           const data = await res.json();
           if (data && data.users) {
-            set((state) => ({ users: { ...state.users, ...data.users } }));
+            const mergedUsers = { ...get().users, ...data.users };
+            set({ users: mergedUsers });
+            postLocalDb({ users: mergedUsers });
           }
         } catch (err) {
           console.error('API sync failed', err);

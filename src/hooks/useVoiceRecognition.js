@@ -19,6 +19,7 @@ export function useVoiceRecognition({
   const recognitionRef = useRef(null);
   const finalCapturedRef = useRef(false);
   const manualStopRef = useRef(false);
+  const voicesRef = useRef([]);
 
   const emitError = useCallback(
     (message) => {
@@ -128,6 +129,28 @@ export function useVoiceRecognition({
     return recognition;
   }, [emitError, language, onFinalTranscript, onInterimTranscript]);
 
+  const chooseSpeechVoice = useCallback(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length) voicesRef.current = voices;
+
+    const availableVoices = voices.length ? voices : voicesRef.current;
+    const preferredLang = getSpeechLang(language);
+    const fallbackLangs = language === 'mr'
+      ? ['mr-IN', 'mr', 'hi-IN', 'hi']
+      : language === 'hi'
+        ? ['hi-IN', 'hi']
+        : ['en-IN', 'en-US', 'en'];
+
+    return (
+      availableVoices.find((voice) => voice.lang === preferredLang) ||
+      availableVoices.find((voice) => fallbackLangs.some((lang) => voice.lang?.toLowerCase().startsWith(lang.toLowerCase()))) ||
+      availableVoices.find((voice) => fallbackLangs.some((lang) => voice.name?.toLowerCase().includes(lang.toLowerCase()))) ||
+      null
+    );
+  }, [language]);
+
   const startListening = useCallback(() => {
     if (!supported || typeof window === 'undefined') {
       emitError('Voice not supported in this browser');
@@ -181,6 +204,11 @@ export function useVoiceRecognition({
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = getSpeechLang(language);
+        const voice = chooseSpeechVoice();
+        if (voice) {
+          utterance.voice = voice;
+          utterance.lang = voice.lang || utterance.lang;
+        }
         utterance.rate = 0.95;
         utterance.pitch = 1;
         utterance.onend = () => resolve();
@@ -189,8 +217,25 @@ export function useVoiceRecognition({
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(utterance);
       }),
-    [language]
+    [chooseSpeechVoice, language]
   );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return undefined;
+
+    const loadVoices = () => {
+      voicesRef.current = window.speechSynthesis.getVoices();
+    };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      if (window.speechSynthesis.onvoiceschanged === loadVoices) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, []);
 
   useEffect(
     () => () => {

@@ -1,14 +1,13 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <DHT.h>
+#include "secrets.h"
 
 #define ZONE_NUMBER 1
 
-const char* WIFI_SSID = "KrishiSarthHotspot";
-const char* WIFI_PASSWORD = "pk18@2004";
 // Laptop-hosted local MQTT broker. Keep this aligned with the laptop's Wi-Fi IPv4 address.
 const char* MQTT_SERVER = "192.168.137.1";
-const uint16_t MQTT_PORT = 1883;
+const uint16_t MQTT_PORT = 1884;
 
 #define DHTPIN D2
 #define DHTTYPE DHT11

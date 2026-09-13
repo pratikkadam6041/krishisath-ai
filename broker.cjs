@@ -3,7 +3,7 @@ const net = require('net');
 const http = require('http');
 const ws = require('websocket-stream');
 
-const TCP_PORT = 1883;
+const TCP_PORT = 1884;
 const WS_PORT = 8080;
 
 // 1. Create Raw TCP server (for ESP8266 Arduino clients)

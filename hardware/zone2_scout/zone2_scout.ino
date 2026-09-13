@@ -1,13 +1,12 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <DHT.h>
+#include "secrets.h"
 
 #define ZONE_NUMBER 2    // Change to 2 for Zone 2 ESP8266
 
-const char* WIFI_SSID = "KrishiSarthHotspot";
-const char* WIFI_PASSWORD = "pk18@2004";
 const char* MQTT_SERVER = "192.168.137.1";
-const uint16_t MQTT_PORT = 1883;
+const uint16_t MQTT_PORT = 1884;
 
 #define DHTPIN D2
 #define DHTTYPE DHT11

@@ -186,24 +186,34 @@ export default function VoiceAssistantFab() {
                   <ul className="list-inside list-disc space-y-1.5 text-xs font-semibold text-sky-700">
                     {language === 'mr' ? (
                       <>
-                        <li>"झोन 1 पंप सुरू करा"</li>
-                        <li>"झोन 2 चा पंप बंद करा"</li>
-                        <li>"झोन 1 वाल्व ओपन करा"</li>
+                        <li>"Zone one pump चालू करा"</li>
+                        <li>"Zone two pump बंद करा"</li>
+                        <li>"झोन एक पंप सुरू करा"</li>
+                        <li>"झोन दोन पंप बंद करा"</li>
                       </>
                     ) : language === 'en' ? (
                       <>
-                        <li>"Turn on zone 1 pump"</li>
-                        <li>"Stop the pump in zone 2"</li>
-                        <li>"Open valve zone 1"</li>
+                        <li>"Zone one pump on"</li>
+                        <li>"Zone two pump off"</li>
+                        <li>"Turn on zone one pump"</li>
+                        <li>"Stop zone two pump"</li>
                       </>
                     ) : (
                       <>
-                        <li>"ज़ोन 1 का पंप चालू करो"</li>
-                        <li>"ज़ोन 2 में पानी बंद करो"</li>
-                        <li>"ज़ोन 1 वाल्व खोलो"</li>
+                        <li>"Zone one pump चालू करो"</li>
+                        <li>"Zone two pump बंद करो"</li>
+                        <li>"ज़ोन एक पंप चालू करो"</li>
+                        <li>"ज़ोन दो पंप बंद करो"</li>
                       </>
                     )}
                   </ul>
+                  <p className="mt-3 text-[11px] font-semibold leading-4 text-sky-600">
+                    {language === 'mr'
+                      ? 'टीप: “one/two” हळू बोला. Chrome 1/2 कधी कधी चुकीचे ऐकतो.'
+                      : language === 'en'
+                        ? 'Tip: say “one/two” slowly; it is more reliable than digits.'
+                        : 'Tip: “one/two” धीरे बोलें; यह digits से ज्यादा reliable है.'}
+                  </p>
                 </div>
               </div>
             )}

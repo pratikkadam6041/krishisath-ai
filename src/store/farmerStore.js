@@ -10,9 +10,29 @@ import { persist } from 'zustand/middleware';
 
 /** Normalize phone for comparison — strips +91, spaces, dashes */
 function normalizePhone(phone = '') {
-  const digits = phone.replace(/\D/g, '');
+  const digits = String(phone).replace(/\D/g, '');
   // Strip leading country code 91 if 12 digits
   return digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
+}
+
+function postLocalDb(payload) {
+  if (typeof fetch !== 'function') return;
+  fetch('/api/db', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
+
+function mergeFarmers(current = [], incoming = []) {
+  const records = new Map();
+  [...incoming, ...current].forEach((farmer) => {
+    if (!farmer) return;
+    const key = normalizePhone(farmer.phone) || farmer.id;
+    if (!key) return;
+    records.set(key, { ...records.get(key), ...farmer });
+  });
+  return Array.from(records.values());
 }
 
 export const useFarmerStore = create(
@@ -43,7 +63,9 @@ export const useFarmerStore = create(
           zones: farmerData.zones || 1,
         };
 
-        set((state) => ({ farmers: [newFarmer, ...state.farmers] }));
+        const nextFarmers = [newFarmer, ...(get().farmers || [])];
+        set({ farmers: nextFarmers });
+        postLocalDb({ farmers: nextFarmers });
         return newFarmer;
       },
 
@@ -64,8 +86,7 @@ export const useFarmerStore = create(
 
           if (existing) {
             // Update existing record — preserve ID, update other fields
-            set(s => ({
-              farmers: s.farmers.map(f =>
+            const nextFarmers = (get().farmers || []).map(f =>
                 normalizePhone(f.phone) === normalizedNew
                   ? {
                       ...f,
@@ -78,9 +99,11 @@ export const useFarmerStore = create(
                       status:   'Active',
                     }
                   : f
-              ),
-            }));
-            return existing;
+              );
+            const updatedFarmer = nextFarmers.find(f => normalizePhone(f.phone) === normalizedNew) || existing;
+            set({ farmers: nextFarmers });
+            postLocalDb({ farmers: nextFarmers });
+            return updatedFarmer;
           }
         }
 
@@ -100,26 +123,53 @@ export const useFarmerStore = create(
           zones: farmerData.zones || 1,
         };
 
-        set((state) => ({ farmers: [newFarmer, ...state.farmers] }));
+        const nextFarmers = [newFarmer, ...(get().farmers || [])];
+        set({ farmers: nextFarmers });
+        postLocalDb({ farmers: nextFarmers });
         return newFarmer;
       },
 
       changeStatus: (id, newStatus) => {
-        set((state) => ({
-          farmers: state.farmers.map((f) => (f.id === id ? { ...f, status: newStatus } : f)),
-        }));
+        const nextFarmers = (get().farmers || []).map((f) => (f.id === id ? { ...f, status: newStatus } : f));
+        set({ farmers: nextFarmers });
+        postLocalDb({ farmers: nextFarmers });
       },
 
       removeFarmer: (id) => {
-        set((state) => ({ farmers: state.farmers.filter((f) => f.id !== id) }));
+        const nextFarmers = (get().farmers || []).filter((f) => f.id !== id);
+        set({ farmers: nextFarmers });
+        postLocalDb({ farmers: nextFarmers });
       },
 
       /** Admin can wipe all farmers (for testing) */
-      clearAll: () => set({ farmers: [] }),
+      clearAll: () => {
+        set({ farmers: [] });
+        postLocalDb({ farmers: [] });
+      },
+
+      syncWithServer: async () => {
+        try {
+          const res = await fetch('/api/db');
+          const data = await res.json();
+          if (Array.isArray(data?.farmers)) {
+            const mergedFarmers = mergeFarmers(get().farmers, data.farmers);
+            set({ farmers: mergedFarmers });
+            postLocalDb({ farmers: mergedFarmers });
+          }
+        } catch {
+          // Local backend is only available while running the dev server.
+        }
+      },
     }),
     {
       // v2 key — clears old fake-farmer data from localStorage automatically
       name: 'ks-farmer-store-v2',
+      version: 2,
+      onRehydrateStorage: () => (state, error) => {
+        if (!error) {
+          setTimeout(() => useFarmerStore.getState().syncWithServer(), 100);
+        }
+      },
     }
   )
 );

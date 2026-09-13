@@ -69,10 +69,67 @@ function formatZoneStatusBlock(zone) {
   return block;
 }
 
+function moistureLabelMr(m) {
+  if (m === undefined || m === null) return 'डेटा नाही';
+  if (m < 25) return 'खूप कमी';
+  if (m < 40) return 'कमी';
+  if (m <= 70) return 'योग्य';
+  return 'जास्त';
+}
+
+function formatMrZoneLine(zone) {
+  const m = zone.moisture;
+  return `• ${zone.name}: ओलावा ${m ?? 'N/A'}% (${moistureLabelMr(m)}), तापमान ${zone.temperature ?? 'N/A'}°C, पंप ${zone.pumpOn ? 'चालू' : 'बंद'}`;
+}
+
 export function offlineKrishiResponse(text, zones, weather, lang = 'en') {
   const q = text.toLowerCase();
   const zoneList = getZoneList(zones);
   const w = weather || {};
+
+  if (lang === 'mr') {
+    const matchedZone = findZoneByQuery(zones, q);
+
+    if (/rain|paaus|पाऊस|weather|हवामान|मौसम/.test(q)) {
+      const prob = w.rainProb;
+      if (prob === undefined) return 'आजचा लाईव्ह हवामान डेटा उपलब्ध नाही. पण सेंसर डेटा वापरून सिंचन निर्णय घेऊ शकतो.';
+      if (prob > 70) return `आज पावसाची शक्यता जास्त आहे (${prob}%). शक्य असल्यास सिंचन थांबवा आणि पाणी वाचवा.`;
+      if (prob > 40) return `आज पावसाची मध्यम शक्यता आहे (${prob}%). मातीचा ओलावा कमी असेल तरच सिंचन करा.`;
+      return `आज पावसाची शक्यता कमी आहे (${prob}%). ओलावा कमी असलेल्या झोनला पाणी देता येईल.`;
+    }
+
+    if (matchedZone && /zone|झोन|moisture|ओलावा|pump|पंप|status|स्थिती|माहिती|शेत/.test(q)) {
+      const m = matchedZone.moisture;
+      let reply = `${matchedZone.name} (${matchedZone.id}) ची स्थिती: ओलावा ${m ?? 'N/A'}%, तापमान ${matchedZone.temperature ?? 'N/A'}°C, पंप ${matchedZone.pumpOn ? 'चालू' : 'बंद'}. `;
+      if (m !== undefined && m < 35) reply += 'ओलावा खूप कमी आहे, ACT मोडमध्ये पंप सुरू करून सिंचन करा.';
+      else if (m !== undefined && m > 75) reply += 'माती जास्त ओली आहे, सिंचन बंद ठेवा.';
+      else reply += `ओलावा ${moistureLabelMr(m)} आहे.`;
+      return reply;
+    }
+
+    if (/water|paani|पाणी|irrigat|सिंचन|pump|पंप|moisture|ओलावा/.test(q)) {
+      let reply = 'सिंचन सल्ला: ';
+      if (!zoneList.length) return 'अजून झोन डेटा उपलब्ध नाही. हार्डवेअर कनेक्ट झाल्यावर मी सिंचन सल्ला देऊ शकतो.';
+      reply += zoneList.map((zone) => {
+        const m = zone.moisture;
+        if (m < 35) return `${zone.name} ला आत्ता पाणी हवे आहे (${m}%).`;
+        if (m < 50) return `${zone.name} थोडा कोरडा होत आहे (${m}%), लवकर सिंचन करा.`;
+        return `${zone.name} ठीक आहे (${m}%), आत्ता पाणी गरजेचे नाही.`;
+      }).join(' ');
+      if (w.rainProb > 60) reply += ` पावसाची शक्यता ${w.rainProb}% आहे, म्हणून शक्य असल्यास थांबा.`;
+      return reply;
+    }
+
+    if (/help|काय करू|commands|कमांड|मदत/.test(q)) {
+      return 'मी सिंचन, पंप, ओलावा, हवामान आणि झोनची माहिती सांगू शकतो. उदाहरण: Zone one pump चालू करा, Zone two pump बंद करा, किंवा माझ्या शेताची माहिती द्या.';
+    }
+
+    if (!zoneList.length) {
+      return 'मी Krishi AI आहे. सध्या झोन डेटा उपलब्ध नाही, पण तुम्ही शेती, हवामान, पंप आणि सिंचनाबद्दल विचारू शकता.';
+    }
+
+    return `तुमच्या शेताची सध्याची माहिती: ${zoneList.map(formatMrZoneLine).join(' ')} हवामान: ${w.temp ?? 'N/A'}°C, पावसाची शक्यता ${w.rainProb ?? 'N/A'}%.`;
+  }
 
   // ── Rain / weather questions ─────────────────────────────
   if (/rain|paaus|पाऊस|बारिश|weather|havas|हवामान|मौसम/.test(q)) {

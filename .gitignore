@@ -18,6 +18,8 @@ dist-ssr
 *.zip
 broker_log.txt
 hardware/raspberry_pi_fertigation_controller/config.json
+hardware/zone1_scout/secrets.h
+hardware/zone2_scout/secrets.h
 public/assets/model.glb
 
 # Editor directories and files
