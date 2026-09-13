@@ -1,0 +1,209 @@
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: -8px;
+  padding-left: 4px;
+}
+
+/* Summary Grid */
+.summary-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-card {
+  background: var(--card-bg);
+  padding: 12px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.icon-wrapper {
+  padding: 8px;
+  border-radius: 12px;
+  display: inline-flex;
+}
+
+.icon-wrapper.blue { background-color: #E3F2FD; color: #1976D2; }
+.icon-wrapper.green { background-color: #E8F5E9; color: #388E3C; }
+.icon-wrapper.primary { background-color: #E0F2F1; color: var(--primary-color); }
+
+.summary-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-info .value {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.summary-info .label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Zone Cards */
+.zone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.zone-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.zone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.zone-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-badge.dry { background-color: #FFEBEE; color: var(--status-dry); }
+.status-badge.optimal { background-color: #E8F5E9; color: var(--status-optimal); }
+
+.progress-container {
+  margin-bottom: 16px;
+}
+
+.progress-bar {
+  height: 8px;
+  background-color: #E5E7EB;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progress-fill.dry { background-color: var(--status-dry); }
+.progress-fill.optimal { background-color: var(--status-optimal); }
+.progress-text { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; }
+
+.action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.action-msg {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.dry-text { color: var(--status-dry); }
+.optimal-text { color: var(--status-optimal); }
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 10px rgba(46, 125, 50, 0.2);
+}
+
+.btn-secondary {
+  background-color: #F3F4F6;
+  color: var(--text-primary);
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* Sensor Grid */
+.sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.sensor-card {
+  background: var(--card-bg);
+  padding: 16px 12px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.sensor-value {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.sensor-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.text-orange { color: #FF9800; }
+.text-purple { color: #9C27B0; }
+.text-blue { color: #2196F3; }
+
+/* Graph Section */
+.graph-section {
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.graph-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-secondary);
+  height: 120px;
+  background: #F8FAFC;
+  border-radius: 12px;
+  border: 1px dashed #CBD5E1;
+}
+
+.graph-placeholder span {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
