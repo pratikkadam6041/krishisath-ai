@@ -23,6 +23,9 @@ import NotificationScreen from './screens/NotificationScreen.jsx';
 import NotificationDetailScreen from './screens/NotificationDetailScreen.jsx';
 import WeatherScreen from './screens/WeatherScreen.jsx';
 import ZoneDetailScreen from './screens/ZoneDetailScreen.jsx';
+import AnimalProtectionScreen from './screens/AnimalProtectionScreen.jsx';
+import GeoFarmScreen from './screens/GeoFarmScreen.jsx';
+import SolarScreen from './screens/SolarScreen.jsx';
 import AdminLoginScreen from './screens/AdminLoginScreen.jsx';
 import AdminDashboard from './screens/AdminDashboard.jsx';
 import AdminFarmerList from './screens/AdminFarmerList.jsx';
@@ -219,6 +222,9 @@ function AppShell() {
             <Route path="/__qa/sensor/mandi" element={isFeatureRouteEnabled('/mandi', features) ? <MandiScreen /> : <Navigate to="/" replace />} />
             <Route path="/weather" element={<WeatherScreen />} />
             <Route path="/__qa/sensor/weather" element={<WeatherScreen />} />
+            <Route path="/animal-protection" element={<AnimalProtectionScreen />} />
+            <Route path="/geofarm" element={<GeoFarmScreen />} />
+            <Route path="/solar-intelligence" element={<SolarScreen />} />
             <Route path="/schemes" element={<SchemesScreen />} />
             <Route path="/__qa/sensor/schemes" element={<SchemesScreen />} />
             <Route path="/schemes/:id" element={<SchemeDetailScreen />} />

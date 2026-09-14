@@ -1,0 +1,28 @@
+/* Leaflet Map Overrides for KrishiSarth UI */
+
+.leaflet-container {
+    font-family: inherit;
+    z-index: 10;
+}
+
+/* Dark mode overrides for map controls */
+.dark .leaflet-bar a {
+    background-color: #1f2937;
+    color: #f3f4f6;
+    border-color: #374151;
+}
+
+.dark .leaflet-bar a:hover {
+    background-color: #374151;
+    color: #ffffff;
+}
+
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip {
+    background-color: #1f2937;
+    color: #f3f4f6;
+}
+
+.leaflet-bottom.leaflet-right {
+    display: none; /* Hide standard attribution to save space on mobile, added custom if needed */
+}
