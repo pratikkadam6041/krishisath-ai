@@ -18,6 +18,8 @@ const PREF_MAP = {
   pest: 'pests',
   pests: 'pests',
   weather: 'moisture',
+  animalRisk: 'animalRisk',
+  solar: 'solar',
 };
 
 export function isNotificationEnabled(type) {

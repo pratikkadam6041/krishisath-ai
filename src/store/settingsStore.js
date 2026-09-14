@@ -8,6 +8,8 @@ const DEFAULT_NOTIFICATION_PREFS = {
   pests: true,
   mandi: true,
   pumps: true,
+  animalRisk: true,
+  solar: true,
 };
 
 export const useSettingsStore = create(

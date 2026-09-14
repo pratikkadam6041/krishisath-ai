@@ -271,5 +271,50 @@
     "step2Title": "AI Control", "step2Desc": "AI manages irrigation automatically",
     "step3Title": "Digital Twin", "step3Desc": "Virtual model of your farm",
     "getStarted": "Get Started", "skip": "Skip"
+  },
+  "animalProtection": {
+    "title": "Animal Protection",
+    "riskOverview": "Risk Overview",
+    "mode": "Protection Mode",
+    "modeOff": "Off",
+    "modeManual": "Manual",
+    "modeAuto": "Automatic",
+    "modeNight": "Night Only",
+    "modeAutomatic": "Automatic",
+    "modeNight_only": "Night Only",
+    "reportIncident": "Report Animal Activity",
+    "reportUnknown": "Report Unknown Activity",
+    "recentIncidents": "Recent Incidents",
+    "score": "Risk Score",
+    "level": "Risk Level",
+    "likelyThreats": "Likely Threats",
+    "highRiskPeriod": "High Risk Period",
+    "noIncidents": "No recent incidents"
+  },
+  "geoFarm": {
+    "title": "GeoFarm",
+    "healthScore": "Zone Health Score",
+    "setupLocation": "Setup Farm Location",
+    "useDeviceLocation": "Use Device Location",
+    "enterCoordinates": "Enter Coordinates",
+    "selectOnMap": "Select on Map",
+    "farmBoundary": "Farm Boundary",
+    "layers": "Map Layers"
+  },
+  "solar": {
+    "title": "Solar Intelligence",
+    "estimatedGen": "Estimated Generation",
+    "currentGen": "Current Estimated Gen",
+    "batteryEst": "Battery Estimate",
+    "configHeading": "Solar Configuration",
+    "panelCapacity": "Panel Capacity (kW)",
+    "batteryCapacity": "Battery Capacity (kWh)",
+    "solarAwareToggle": "Solar-Aware Irrigation"
+  },
+  "dailyBrief": {
+    "title": "Daily Brief",
+    "overallHealth": "Overall Health",
+    "highlights": "Key Highlights",
+    "actionItems": "Recommended Actions"
   }
 }

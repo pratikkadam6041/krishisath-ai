@@ -25,7 +25,8 @@ import {
   Tent,
   Fish,
   Trees,
-  TrendingUp
+  TrendingUp,
+  Map as MapIcon
 } from 'lucide-react';
 
 import AddZoneSheet from '../components/AddZoneSheet.jsx';
@@ -37,6 +38,9 @@ import WaterNowConfirm from '../components/WaterNowConfirm.jsx';
 import WeatherGlyph from '../components/WeatherGlyph.jsx';
 import WaterScheduleCard from '../components/WaterScheduleCard.jsx';
 import FertigationPanel from '../components/FertigationPanel/index.jsx';
+import AnimalRiskCard from '../components/AnimalRiskCard.jsx';
+import SolarDashboardCard from '../components/SolarDashboardCard.jsx';
+import DailyBriefCard from '../components/DailyBriefCard.jsx';
 import { fetchWeather, getUserLocation } from '../api/liveServices.js';
 import { getCropMeta } from '../data/appContent.js';
 import { useMqtt } from '../hooks/useMqtt.js';
@@ -541,6 +545,8 @@ export default function HomeScreen() {
         </div>
       ) : null}
 
+      <DailyBriefCard onClick={() => {}} />
+
       <div className="home-weather-grid">
       <button type="button" onClick={() => navigate('/weather')} className="mb-4 block w-full text-left">
         {weather ? (
@@ -849,6 +855,15 @@ export default function HomeScreen() {
                   onView={() => navigate(`/zone/${zoneId}`)}
                 />
               ))}
+              
+              {zoneEntries.map(([zoneId, zone]) => (
+                <AnimalRiskCard 
+                  key={`animal-${zoneId}`}
+                  zone={zone}
+                  weather={weather}
+                  onClick={() => navigate('/animal-protection')}
+                />
+              ))}
             </div>
           )}
 
@@ -894,6 +909,10 @@ export default function HomeScreen() {
         <WaterScheduleCard />
       </div>
 
+      <div className="mt-4">
+        <SolarDashboardCard onClick={() => navigate('/solar-intelligence')} />
+      </div>
+
       <div className="mt-6">
         <h2 className="mb-3 text-lg font-black text-text-primary">
           {localize({ hi: 'त्वरित सेवाएं', mr: 'त्वरित सेवा', en: 'Quick services' }, language)}
@@ -930,6 +949,13 @@ export default function HomeScreen() {
             subtitle={localize({ hi: 'बोलकर या लिखकर पूछें', mr: 'बोलून किंवा लिहून विचारा', en: 'Talk or type naturally' }, language)}
             colorClass="bg-emerald-100"
             onClick={() => navigate('/chat')}
+          />
+          <QuickCard
+            icon={<MapIcon size={22} className="text-lime-700" />}
+            title={localize({ hi: 'जियो फार्म', mr: 'जिओ फार्म', en: 'GeoFarm' }, language)}
+            subtitle={localize({ hi: 'नक्शा और AI', mr: 'नकाशा आणि AI', en: 'Map & Agronomy' }, language)}
+            colorClass="bg-lime-100"
+            onClick={() => navigate('/geofarm')}
           />
         </div>
       </div>

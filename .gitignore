@@ -22,6 +22,9 @@ hardware/zone1_scout/secrets.h
 hardware/zone2_scout/secrets.h
 public/assets/model.glb
 
+.local-db.json
+build.log
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -271,5 +271,50 @@
     "step2Title": "AI नियंत्रण", "step2Desc": "AI खुद सिंचाई प्रबंधन करती है",
     "step3Title": "Digital Twin", "step3Desc": "आपके खेत का virtual model",
     "getStarted": "शुरू करें", "skip": "छोड़ें"
+  },
+  "animalProtection": {
+    "title": "पशु सुरक्षा",
+    "riskOverview": "जोखिम अवलोकन",
+    "mode": "सुरक्षा मोड",
+    "modeOff": "बंद",
+    "modeManual": "मैन्युअल",
+    "modeAuto": "स्वचालित",
+    "modeNight": "केवल रात",
+    "modeAutomatic": "स्वचालित",
+    "modeNight_only": "केवल रात",
+    "reportIncident": "पशु गतिविधि रिपोर्ट करें",
+    "reportUnknown": "अज्ञात गतिविधि रिपोर्ट करें",
+    "recentIncidents": "हाल की घटनाएं",
+    "score": "जोखिम स्कोर",
+    "level": "जोखिम स्तर",
+    "likelyThreats": "संभावित खतरे",
+    "highRiskPeriod": "उच्च जोखिम अवधि",
+    "noIncidents": "कोई हालिया घटना नहीं"
+  },
+  "geoFarm": {
+    "title": "जियो-फार्म (GeoFarm)",
+    "healthScore": "ज़ोन स्वास्थ्य स्कोर",
+    "setupLocation": "खेत का स्थान सेट करें",
+    "useDeviceLocation": "डिवाइस स्थान का उपयोग करें",
+    "enterCoordinates": "निर्देशांक दर्ज करें",
+    "selectOnMap": "नक्शे पर चुनें",
+    "farmBoundary": "खेत की सीमा",
+    "layers": "नक्शा परतें (Layers)"
+  },
+  "solar": {
+    "title": "सौर ऊर्जा बुद्धिमत्ता",
+    "estimatedGen": "अनुमानित उत्पादन",
+    "currentGen": "वर्तमान अनुमानित उत्पादन",
+    "batteryEst": "बैटरी अनुमान",
+    "configHeading": "सौर कॉन्फ़िगरेशन",
+    "panelCapacity": "पैनल क्षमता (kW)",
+    "batteryCapacity": "बैटरी क्षमता (kWh)",
+    "solarAwareToggle": "सौर-जागरूक सिंचाई"
+  },
+  "dailyBrief": {
+    "title": "दैनिक सारांश",
+    "overallHealth": "कुल स्वास्थ्य",
+    "highlights": "मुख्य बातें",
+    "actionItems": "सुझाई गई कार्रवाइयां"
   }
 }
