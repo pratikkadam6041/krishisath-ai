@@ -1,13 +1,67 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { AudioLines, Mic, Zap, CheckCircle2, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVoiceRecognition } from '../hooks/useVoiceRecognition.js';
 import { useZoneStore } from '../store/zoneStore.js';
 import { useSettingsStore } from '../store/settingsStore.js';
 import { parseFarmerCommand, buildConfirmMessage } from '../ai-ml/voiceCommandParser.js';
+import { detectLanguage } from '../utils/languageDetect.js';
 import { showToast } from './Toast/index.jsx';
 import { useMqtt } from '../hooks/useMqtt.js';
 import { dispatchHardwareUpdate } from '../utils/zoneSync.js';
+
+function getSpokenDecision(text) {
+  const normalized = String(text || '').trim().toLowerCase();
+  if (/^(yes|yeah|yep|haan|ha|haanji|ji\s*haan|हाँ|हां|हाँ\s*जी|हा|हो|होय|बरं|बर|करा)(?:\s|$)/u.test(normalized)) return true;
+  if (/^(no|nope|nah|nahi|nahin|नहीं|नही|ना|नको|नाही|थांबा|थांबवा)(?:\s|$)/u.test(normalized)) return false;
+  return null;
+}
+
+function commandReply(language, key, zoneName = '') {
+  const text = {
+    unavailable: {
+      en: 'Hardware is not connected, so I could not send the pump command.',
+      hi: 'हार्डवेयर कनेक्ट नहीं है, इसलिए पंप कमांड नहीं भेजी जा सकी।',
+      mr: 'हार्डवेअर कनेक्ट नाही. पंप कमांड पाठवता आली नाही.',
+    },
+    missingZone: {
+      en: 'I could not find that irrigation zone.',
+      hi: 'मुझे वह सिंचाई ज़ोन नहीं मिला।',
+      mr: 'मला तो सिंचन झोन सापडला नाही.',
+    },
+    notUnderstood: {
+      en: 'I did not understand. Please say the zone and whether to start or stop the pump.',
+      hi: 'मुझे समझ नहीं आया। कृपया ज़ोन और पंप चालू या बंद करने का आदेश बोलें।',
+      mr: 'मला समजले नाही. कृपया झोन आणि पंप सुरू किंवा बंद करण्याचा आदेश सांगा.',
+    },
+    cancelled: {
+      en: 'Okay, I cancelled that command.',
+      hi: 'ठीक है, कमांड रद्द कर दी।',
+      mr: 'ठीक आहे, कमांड रद्द केली.',
+    },
+    pumpOn: {
+      en: `Irrigation started for ${zoneName}.`,
+      hi: `${zoneName} सिंचाई शुरू हो गई।`,
+      mr: `${zoneName} मध्ये सिंचन सुरू झाले.`,
+    },
+    pumpOff: {
+      en: `Irrigation stopped for ${zoneName}.`,
+      hi: `${zoneName} पंप बंद हो गया।`,
+      mr: `${zoneName} मधील सिंचन बंद झाले.`,
+    },
+    valveOn: {
+      en: `Valve opened for ${zoneName}.`,
+      hi: `${zoneName} का वाल्व खुल गया।`,
+      mr: `${zoneName} चा वाल्व उघडला.`,
+    },
+    valveOff: {
+      en: `Valve closed for ${zoneName}.`,
+      hi: `${zoneName} का वाल्व बंद हो गया।`,
+      mr: `${zoneName} चा वाल्व बंद झाला.`,
+    },
+  };
+  return text[key]?.[language] || text[key]?.hi || '';
+}
 
 export default function VoiceAssistantFab() {
   const navigate = useNavigate();
@@ -15,23 +69,36 @@ export default function VoiceAssistantFab() {
   const zones = useZoneStore((state) => state.zones);
   
   const [hwConfirm, setHwConfirm] = useState(null); // { cmd, message }
+  const hwConfirmRef = useRef(null);
+  const setHardwareConfirmation = useCallback((nextConfirmation) => {
+    hwConfirmRef.current = nextConfirmation;
+    setHwConfirm(nextConfirmation);
+  }, []);
   const [draft, setDraft] = useState('');
   const mqtt = useMqtt();
   
-  const speakReply = useCallback(async (text, voiceObj) => {
+  const speakReply = useCallback(async (text, voiceObj, responseLanguage = language) => {
     if (text) {
-      await voiceObj.speak(text, true);
+      await voiceObj.speak(text, true, responseLanguage);
     }
-  }, []);
+  }, [language]);
 
-  const executeHardwareCommand = useCallback((cmd, voiceObj) => {
+  const executeHardwareCommand = useCallback(async (cmd, voiceObj) => {
+    const responseLanguage = cmd?.responseLanguage || language;
     if (!mqtt || !mqtt.isConnected) {
-      showToast('Hardware not connected', 'warning');
-      return;
+      const message = commandReply(responseLanguage, 'unavailable');
+      showToast(message, 'warning');
+      await speakReply(message, voiceObj, responseLanguage);
+      return false;
     }
     
     const zone = zones[cmd.zoneId];
-    if (!zone) return;
+    if (!zone) {
+      const message = commandReply(responseLanguage, 'missingZone');
+      showToast(message, 'warning');
+      await speakReply(message, voiceObj, responseLanguage);
+      return false;
+    }
 
     if (cmd.intent === 'PUMP_ON' || cmd.intent === 'PUMP_OFF') {
       const turnOn = cmd.intent === 'PUMP_ON';
@@ -39,23 +106,22 @@ export default function VoiceAssistantFab() {
       mqtt.publishValve(cmd.zoneId, turnOn, 'voice');
       dispatchHardwareUpdate({ ...zone, pumpOn: turnOn, valveOpen: turnOn });
       const zoneName = zones[cmd.zoneId]?.name || cmd.zoneId;
-      const msg = cmd.intent === 'PUMP_ON'
-        ? `${zoneName} सिंचाई शुरू हो गई`
-        : `${zoneName} पंप बंद हो गया`;
+      const msg = commandReply(responseLanguage, turnOn ? 'pumpOn' : 'pumpOff', zoneName);
       showToast(msg, 'success');
-      speakReply(msg, voiceObj);
+      await speakReply(msg, voiceObj, responseLanguage);
+      return true;
     } else if (cmd.intent === 'VALVE_OPEN' || cmd.intent === 'VALVE_CLOSE') {
       const turnOn = cmd.intent === 'VALVE_OPEN';
       mqtt.publishValve(cmd.zoneId, turnOn, 'voice');
       dispatchHardwareUpdate({ ...zone, valveOpen: turnOn });
       const zoneName = zones[cmd.zoneId]?.name || cmd.zoneId;
-      const msg = cmd.intent === 'VALVE_OPEN'
-        ? `${zoneName} वाल्व खुल गया`
-        : `${zoneName} वाल्व बंद हो गया`;
+      const msg = commandReply(responseLanguage, turnOn ? 'valveOn' : 'valveOff', zoneName);
       showToast(msg, 'success');
-      speakReply(msg, voiceObj);
+      await speakReply(msg, voiceObj, responseLanguage);
+      return true;
     }
-  }, [mqtt, zones, speakReply]);
+    return false;
+  }, [language, mqtt, zones, speakReply]);
 
   const voice = useVoiceRecognition({
     language,
@@ -66,17 +132,43 @@ export default function VoiceAssistantFab() {
       const finalText = transcript.trim();
       if (!finalText) return;
 
+      const responseLanguage = detectLanguage(finalText, language);
+      const activeConfirmation = hwConfirmRef.current;
+      if (activeConfirmation) {
+        const decision = getSpokenDecision(finalText);
+        if (decision === true) {
+          const command = activeConfirmation.cmd;
+          setHardwareConfirmation(null);
+          await executeHardwareCommand(command, voice);
+          voice.restartIfArmed();
+          setDraft('');
+          return;
+        }
+        if (decision === false) {
+          const message = commandReply(activeConfirmation.cmd.responseLanguage || responseLanguage, 'cancelled');
+          setHardwareConfirmation(null);
+          showToast(message, 'info');
+          await speakReply(message, voice, activeConfirmation.cmd.responseLanguage || responseLanguage);
+          voice.restartIfArmed();
+          setDraft('');
+          return;
+        }
+      }
+
       const availableZones = Object.keys(zones);
       const hwCmd = parseFarmerCommand(finalText, availableZones);
       
       if (hwCmd && (hwCmd.intent === 'PUMP_ON' || hwCmd.intent === 'PUMP_OFF' || hwCmd.intent === 'VALVE_OPEN' || hwCmd.intent === 'VALVE_CLOSE')) {
-        const confirmMsg = buildConfirmMessage(hwCmd, zones, language);
-        setHwConfirm({ cmd: hwCmd, message: confirmMsg });
-        await speakReply(confirmMsg, voice);
+        const command = { ...hwCmd, responseLanguage };
+        const confirmMsg = buildConfirmMessage(command, zones, responseLanguage);
+        setHardwareConfirmation({ cmd: command, message: confirmMsg });
+        await speakReply(confirmMsg, voice, responseLanguage);
+        voice.restartIfArmed();
       } else {
-        const errMsg = language === 'mr' ? 'मला समजले नाही.' : language === 'en' ? 'I did not understand.' : 'मुझे समझ नहीं आया।';
+        const errMsg = commandReply(responseLanguage, 'notUnderstood');
         showToast(errMsg, 'error');
-        await speakReply(errMsg, voice);
+        await speakReply(errMsg, voice, responseLanguage);
+        voice.restartIfArmed();
       }
       setDraft('');
     },
@@ -137,8 +229,8 @@ export default function VoiceAssistantFab() {
                   <button
                     type="button"
                     onClick={() => {
-                      executeHardwareCommand(hwConfirm.cmd, voice);
-                      setHwConfirm(null);
+                      void executeHardwareCommand(hwConfirm.cmd, voice);
+                      setHardwareConfirmation(null);
                     }}
                     className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#1a3d1a] py-3.5 text-sm font-black text-white active:scale-95 transition-transform"
                   >
@@ -148,7 +240,7 @@ export default function VoiceAssistantFab() {
                   <button
                     type="button"
                     onClick={() => {
-                      setHwConfirm(null);
+                      setHardwareConfirmation(null);
                       voice.stopRecognition();
                     }}
                     className="flex-1 rounded-2xl border border-border py-3.5 text-sm font-black text-text-secondary active:scale-95 transition-transform"

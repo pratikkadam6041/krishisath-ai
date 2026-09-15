@@ -211,11 +211,23 @@ export function useVoiceRecognition({
         }
         utterance.rate = 0.95;
         utterance.pitch = 1;
-        utterance.onend = () => resolve();
-        utterance.onerror = () => resolve();
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        utterance.onend = finish;
+        utterance.onerror = finish;
 
+        // Chrome can retain the cancelled recognizer's audio state for one
+        // event loop. Queue the reply after cancelling so Hindi and Marathi
+        // utterances are not silently dropped.
         window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance);
+        window.setTimeout(() => {
+          window.speechSynthesis.resume?.();
+          window.speechSynthesis.speak(utterance);
+        }, 60);
       }),
     [chooseSpeechVoice, language]
   );

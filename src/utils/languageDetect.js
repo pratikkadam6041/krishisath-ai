@@ -20,6 +20,13 @@ const MARATHI_HINTS = [
   'सांग',
   'सल्ला',
   'भाव',
+  'करा',
+  'चालू',
+  'सुरू',
+  'थांबवा',
+  'पंप',
+  'पाणी',
+  'झोन',
 ];
 
 const HINDI_HINTS = [
@@ -35,6 +42,10 @@ const HINDI_HINTS = [
   'योजना',
   'सिंचाई',
   'बताओ',
+  'पंप',
+  'चालू',
+  'बंद',
+  'करो',
 ];
 
 const GREETING_PATTERNS = {
@@ -80,7 +91,7 @@ export function detectLanguage(text, fallback = 'hi') {
   const marathiScore = countMatches(sample, MARATHI_HINTS);
   const hindiScore = countMatches(sample, HINDI_HINTS);
 
-  if (marathiScore > hindiScore) {
+  if (marathiScore >= hindiScore && marathiScore > 0) {
     return 'mr';
   }
 

@@ -333,6 +333,11 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
   const retryRequestsRef = useRef(new Map());
   const draftSnapshotRef = useRef('');
   const voiceGreetingStartedRef = useRef(false);
+  const hwConfirmRef = useRef(null);
+  const setHardwareConfirmation = useCallback((nextConfirmation) => {
+    hwConfirmRef.current = nextConfirmation;
+    setHwConfirm(nextConfirmation);
+  }, []);
 
   const farmContext = useMemo(
     () => formatZoneContext(zones, settings, language),
@@ -439,11 +444,11 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
   }, [closeChat, embedded]);
 
   // Auto-speak every assistant reply when TTS is enabled
-  const speakReply = useCallback(async (text, responseLanguage = language) => {
+  const speakReply = useCallback(async (text, responseLanguage = language, forceSpeech = false) => {
     // Entering advanced voice mode is an explicit request for a spoken
     // conversation, including confirmation and error replies. It must not go
     // silent just because the normal chat sound preference was previously off.
-    if ((ttsEnabled || isVoiceExperience) && text) {
+    if ((ttsEnabled || isVoiceExperience || forceSpeech) && text) {
       await voice.speak(cleanAssistantText(text), true, responseLanguage);
     }
   }, [isVoiceExperience, language, ttsEnabled, voice]);
@@ -459,7 +464,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
         ? 'Please switch to ACT mode before controlling irrigation.'
         : 'सिंचाई नियंत्रित करने के लिए पहले ACT मोड चालू करें।';
       showToast(modeMessage, 'warning');
-      await speakReply(modeMessage, responseLanguage);
+      await speakReply(modeMessage, responseLanguage, cmd?.voiceInitiated);
       return false;
     }
 
@@ -470,7 +475,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
         ? 'Hardware is not connected, so I could not send the pump command.'
         : 'हार्डवेयर कनेक्ट नहीं है, इसलिए पंप कमांड नहीं भेजी जा सकी।';
       showToast(unavailable, 'warning');
-      await speakReply(unavailable, responseLanguage);
+      await speakReply(unavailable, responseLanguage, cmd?.voiceInitiated);
       return false;
     }
 
@@ -486,7 +491,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
           ? 'Hardware is not connected, so I could not send the pump command.'
           : 'हार्डवेयर कनेक्ट नहीं है, इसलिए पंप कमांड नहीं भेजी जा सकी।';
         showToast(unavailable, 'warning');
-        await speakReply(unavailable, responseLanguage);
+        await speakReply(unavailable, responseLanguage, cmd?.voiceInitiated);
         return false;
       }
 
@@ -496,7 +501,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
         ? `Irrigation ${turnOn ? 'started' : 'stopped'} for ${zoneName}.`
         : `${zoneName} सिंचाई ${turnOn ? 'शुरू हो गई' : 'बंद हो गई'}`;
       showToast(msg, 'success');
-      await speakReply(msg, responseLanguage);
+      await speakReply(msg, responseLanguage, cmd?.voiceInitiated);
       return true;
     } else if (cmd.intent === 'VALVE_OPEN' || cmd.intent === 'VALVE_CLOSE') {
       const open = cmd.intent === 'VALVE_OPEN';
@@ -508,7 +513,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
           ? 'Hardware is not connected, so I could not send the valve command.'
           : 'हार्डवेयर कनेक्ट नहीं है, इसलिए वाल्व कमांड नहीं भेजी जा सकी।';
         showToast(unavailable, 'warning');
-        await speakReply(unavailable, responseLanguage);
+        await speakReply(unavailable, responseLanguage, cmd?.voiceInitiated);
         return false;
       }
 
@@ -518,7 +523,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
         ? `Valve ${open ? 'opened' : 'closed'} for ${zoneName}.`
         : `${zoneName} का वाल्व ${open ? 'खुल गया' : 'बंद हो गया'}`;
       showToast(msg, 'success');
-      await speakReply(msg, responseLanguage);
+      await speakReply(msg, responseLanguage, cmd?.voiceInitiated);
       return true;
     }
     return false;
@@ -532,29 +537,30 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
 
     // Advanced voice mode keeps a short, safe command conversation alive:
     // request -> zone -> explicit yes/no. No hardware action occurs before yes.
-    if (fromVoice && hwConfirm) {
-      if (hwConfirm.awaitingZone) {
+    const activeConfirmation = hwConfirmRef.current;
+    if (fromVoice && activeConfirmation) {
+      if (activeConfirmation.awaitingZone) {
         const selectedCommand = parseFarmerCommand(
-          `${hwConfirm.cmd.raw} ${rawText}`,
+          `${activeConfirmation.cmd.raw} ${rawText}`,
           Object.keys(zones)
         );
 
         if (selectedCommand?.zoneId) {
-          const responseLanguage = hwConfirm.cmd.responseLanguage || detectLanguage(rawText, language);
-          const commandWithLanguage = { ...selectedCommand, responseLanguage };
+          const responseLanguage = activeConfirmation.cmd.responseLanguage || detectLanguage(rawText, language);
+          const commandWithLanguage = { ...selectedCommand, responseLanguage, voiceInitiated: true };
           const confirmMsg = buildConfirmMessage(commandWithLanguage, zones, responseLanguage);
           appendMessage({ role: 'user', content: rawText });
           appendMessage({ role: 'assistant', content: confirmMsg });
-          setHwConfirm({ cmd: commandWithLanguage, message: confirmMsg, awaitingZone: false });
-          await speakReply(confirmMsg, responseLanguage);
+          setHardwareConfirmation({ cmd: commandWithLanguage, message: confirmMsg, awaitingZone: false });
+          await speakReply(confirmMsg, responseLanguage, true);
           voice.restartIfArmed();
           return;
         }
 
-        const responseLanguage = hwConfirm.cmd.responseLanguage || language;
-        const zonePrompt = buildConfirmMessage(hwConfirm.cmd, zones, responseLanguage);
+        const responseLanguage = activeConfirmation.cmd.responseLanguage || language;
+        const zonePrompt = buildConfirmMessage(activeConfirmation.cmd, zones, responseLanguage);
         appendMessage({ role: 'assistant', content: zonePrompt });
-        await speakReply(zonePrompt, responseLanguage);
+        await speakReply(zonePrompt, responseLanguage, true);
         voice.restartIfArmed();
         return;
       }
@@ -562,15 +568,15 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
       const decision = getSpokenDecision(rawText);
       if (decision !== null) {
         appendMessage({ role: 'user', content: rawText });
-        const command = hwConfirm.cmd;
-        setHwConfirm(null);
+        const command = activeConfirmation.cmd;
+        setHardwareConfirmation(null);
         if (decision) {
           await executeHardwareCommand(command);
         } else {
           const responseLanguage = command.responseLanguage || language;
           const cancelled = responseLanguage === 'mr' ? 'ठीक आहे, कमांड रद्द केली.' : responseLanguage === 'en' ? 'Okay, I cancelled that command.' : 'ठीक है, कमांड रद्द कर दी।';
           appendMessage({ role: 'assistant', content: cancelled });
-          await speakReply(cancelled, responseLanguage);
+          await speakReply(cancelled, responseLanguage, true);
         }
         voice.restartIfArmed();
         return;
@@ -582,7 +588,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
       const availableZones = Object.keys(zones);
       const parsedCommand = parseFarmerCommand(rawText, availableZones);
       const hwCmd = parsedCommand
-        ? { ...parsedCommand, responseLanguage: detectLanguage(rawText, language) }
+        ? { ...parsedCommand, responseLanguage: detectLanguage(rawText, language), voiceInitiated: fromVoice }
         : null;
       if (hwCmd && (hwCmd.intent === 'PUMP_ON' || hwCmd.intent === 'PUMP_OFF' || hwCmd.intent === 'VALVE_OPEN' || hwCmd.intent === 'VALVE_CLOSE')) {
         if (!retryPayload) {
@@ -591,9 +597,9 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
         }
         const confirmMsg = buildConfirmMessage(hwCmd, zones, hwCmd.responseLanguage);
         // Keep the spoken dialogue active if Krishi still needs the zone.
-        setHwConfirm({ cmd: hwCmd, message: confirmMsg, awaitingZone: !hwCmd.zoneId });
+        setHardwareConfirmation({ cmd: hwCmd, message: confirmMsg, awaitingZone: !hwCmd.zoneId });
         appendMessage({ role: 'assistant', content: confirmMsg });
-        await speakReply(confirmMsg, hwCmd.responseLanguage);
+        await speakReply(confirmMsg, hwCmd.responseLanguage, fromVoice);
         if (fromVoice) voice.restartIfArmed();
         return;
       }
@@ -631,7 +637,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
           responseLanguage
         );
         appendMessage({ role: 'assistant', content: offlineReply });
-        await speakReply(offlineReply);
+        await speakReply(offlineReply, responseLanguage, fromVoice);
         if (fromVoice) voice.restartIfArmed();
         return;
       }
@@ -641,7 +647,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
           role: 'assistant',
           content: socialReply,
         });
-        await speakReply(socialReply);
+        await speakReply(socialReply, responseLanguage, fromVoice);
         if (fromVoice) voice.restartIfArmed();
         return;
       }
@@ -684,7 +690,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
       });
 
       // Auto-speak every reply (not just voice-triggered)
-      await speakReply(assistantText);
+      await speakReply(assistantText, responseLanguage, fromVoice);
       if (fromVoice) voice.restartIfArmed();
     } catch (error) {
       if (shouldUseOfflineFallback(error)) {
@@ -695,7 +701,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
           responseLanguage
         );
         appendMessage({ role: 'assistant', content: offlineReply });
-        await speakReply(offlineReply);
+        await speakReply(offlineReply, responseLanguage, fromVoice);
         if (fromVoice) voice.restartIfArmed();
         return;
       }
@@ -720,7 +726,9 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
         retryKey,
       });
 
-      if (fromVoice && errorState.retryable) {
+      await speakReply(errorState.content, responseLanguage, fromVoice);
+
+      if (fromVoice) {
         voice.restartIfArmed();
       }
     } finally {
@@ -959,7 +967,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
                 {hwConfirm.awaitingZone ? (
                   <button
                     type="button"
-                    onClick={() => setHwConfirm(null)}
+                    onClick={() => setHardwareConfirmation(null)}
                     className="mt-3 w-full rounded-xl border border-border py-2.5 text-xs font-black text-text-secondary"
                   >
                     {language === 'mr' ? 'रद्द करा' : language === 'en' ? 'Cancel command' : 'कमांड रद्द करें'}
@@ -970,7 +978,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
                       type="button"
                       onClick={() => {
                         void executeHardwareCommand(hwConfirm.cmd);
-                        setHwConfirm(null);
+                        setHardwareConfirmation(null);
                       }}
                       className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#1a3d1a] py-2.5 text-xs font-black text-white"
                     >
@@ -979,7 +987,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
                     </button>
                     <button
                       type="button"
-                      onClick={() => setHwConfirm(null)}
+                      onClick={() => setHardwareConfirmation(null)}
                       className="flex-1 rounded-xl border border-border py-2.5 text-xs font-black text-text-secondary"
                     >
                       {language === 'mr' ? 'नाही' : language === 'en' ? 'Cancel' : 'रद्द करें'}
@@ -1097,7 +1105,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
                   type="button"
                   onClick={() => {
                     void executeHardwareCommand(hwConfirm.cmd);
-                    setHwConfirm(null);
+                    setHardwareConfirmation(null);
                   }}
                   className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-[#06240f] transition hover:bg-emerald-400"
                 >
@@ -1105,7 +1113,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
                 </button>
                 <button
                   type="button"
-                  onClick={() => setHwConfirm(null)}
+                  onClick={() => setHardwareConfirmation(null)}
                   className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white/85 transition hover:bg-white/20"
                 >
                   {language === 'mr' ? 'नाही' : language === 'en' ? 'Cancel' : 'रद्द करें'}
