@@ -89,7 +89,7 @@ export default function FutureFarmIntelligence({ language, onOpenSatellite }) {
           <div className="rounded-2xl bg-white/75 p-3"><BatteryCharging size={15} className="text-emerald-600" /><p className="mt-2 text-base font-black text-text-primary">{solar.battery}</p><p className="text-[10px] font-bold uppercase tracking-wide text-text-secondary">Battery</p></div>
           <div className="rounded-2xl bg-white/75 p-3"><Waves size={15} className="text-sky-600" /><p className="mt-2 text-sm font-black text-text-primary">{solar.load}</p><p className="text-[10px] font-bold uppercase tracking-wide text-text-secondary">Load plan</p></div>
         </div>
-        <button type="button" onClick={onOpenSatellite} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-amber-800 bg-amber-700 px-4 text-sm font-black text-white shadow-[0_10px_24px_rgba(146,64,14,0.32)] transition hover:bg-amber-800 focus:outline-none focus:ring-4 focus:ring-amber-300 active:scale-[0.99]"><SunMedium size={17} /> Open solar plan on satellite map <ChevronRight size={16} /></button>
+        <button type="button" onClick={onOpenSatellite} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-amber-300 bg-amber-100 px-4 text-sm font-black text-slate-950 shadow-[0_10px_24px_rgba(146,64,14,0.18)] transition hover:bg-amber-200 focus:outline-none focus:ring-4 focus:ring-amber-300 active:scale-[0.99]"><SunMedium size={17} /> Open solar plan on satellite map <ChevronRight size={16} /></button>
       </article>
     </section>
   );
