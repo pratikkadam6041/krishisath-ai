@@ -43,6 +43,7 @@ import { useMqtt } from '../hooks/useMqtt.js';
 import { useCountUp } from '../hooks/useCountUp.js';
 import { useAuthStore } from '../store/authStore.js';
 import YieldAnalytics from '../components/YieldAnalytics.jsx';
+import FutureFarmIntelligence from '../components/FutureFarmIntelligence.jsx';
 import { useAdminStore } from '../store/adminStore.js';
 import { useMandiStore } from '../store/mandiStore.js';
 import { useNotificationStore } from '../store/notificationStore.js';
@@ -712,6 +713,8 @@ export default function HomeScreen() {
           tone="good"
         />
       </div>
+
+      <FutureFarmIntelligence language={language} onOpenSatellite={() => navigate('/twin?satellite=1')} />
 
       <div className="mb-6 rounded-[24px] border border-[#dbe5d8] bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-5 shadow-sm dark:border-emerald-900/30 dark:from-emerald-900/20 dark:to-emerald-900/10">
         <div className="mb-3 flex items-start justify-between">

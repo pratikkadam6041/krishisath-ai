@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Network, Zap, Droplets, Clock, Brain } from 'lucide-react';
+import { Network, Zap, Droplets, Clock, Brain, Satellite, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 import FarmDiorama from '../components/DigitalTwinMap/FarmDiorama.jsx';
 import { showToast } from '../components/Toast/index.jsx';
@@ -112,7 +113,24 @@ function RLRecommendationBanner({ zones, weather, language }) {
   );
 }
 
+function SatelliteMap({ onClose }) {
+  // Demo location uses Pune until a precise farm-boundary coordinate is added
+  // during onboarding. This remains a read-only visual layer and never sends
+  // a control command.
+  const mapUrl = 'https://www.google.com/maps?q=18.5204,73.8567&z=15&t=k&output=embed';
+  return (
+    <div className="absolute inset-0 z-50 bg-[#081014]">
+      <iframe title="Satellite view of the farm area" src={mapUrl} className="h-full w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+      <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-3 rounded-2xl border border-white/15 bg-slate-950/90 px-4 py-3 text-white backdrop-blur">
+        <div><p className="flex items-center gap-2 text-sm font-black"><Satellite size={17} className="text-emerald-400" /> Geospatial satellite view</p><p className="mt-0.5 text-xs text-slate-400">Pune demo boundary · read-only planning layer</p></div>
+        <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white" aria-label="Close satellite map"><X size={19} /></button>
+      </div>
+    </div>
+  );
+}
+
 export default function DigitalTwinScreen() {
+  const [searchParams] = useSearchParams();
   const language = useSettingsStore((state) => state.language);
   const zones = useZoneStore((state) => state.zones);
   const weatherCache = useZoneStore((state) => state.weatherCache);
@@ -125,6 +143,7 @@ export default function DigitalTwinScreen() {
     .join('|');
 
   const [isRaining, setIsRaining] = useState(false);
+  const [showSatellite, setShowSatellite] = useState(() => searchParams.get('satellite') === '1');
 
   const handleToggleRain = () => {
     const newRainState = !isRaining;
@@ -228,11 +247,14 @@ export default function DigitalTwinScreen() {
         isRaining={isRaining}
       />
 
+      {showSatellite ? <SatelliteMap onClose={() => setShowSatellite(false)} /> : null}
+
       {/* RL-driven irrigation recommendation overlay */}
       <RLRecommendationBanner zones={zones} weather={weatherCache} language={language} />
 
       {/* Rain Toggle Button */}
       <div className="absolute z-40" style={{ top: '12px', right: '12px' }}>
+        <div className="flex flex-col gap-2">
         <button 
           onClick={handleToggleRain}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl border backdrop-blur-md shadow-lg transition-all ${
@@ -244,6 +266,8 @@ export default function DigitalTwinScreen() {
           <Droplets size={18} className={isRaining ? 'animate-bounce' : ''} />
           <span className="font-bold text-sm">{isRaining ? 'Stop Rain' : 'Simulate Rain'}</span>
         </button>
+        <button onClick={() => setShowSatellite(true)} className="flex items-center gap-2 rounded-xl border border-white/20 bg-slate-950/75 px-4 py-2 text-sm font-bold text-white backdrop-blur hover:bg-slate-900"><Satellite size={18} className="text-emerald-400" /> Satellite map</button>
+        </div>
       </div>
     </div>
   );
