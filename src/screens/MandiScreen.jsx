@@ -173,7 +173,7 @@ export default function MandiScreen() {
       {isDemo ? (
         <div className="mb-4 rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3">
           <p className="text-sm font-black text-amber-950">
-            {localize({ hi: 'डेमो मंडी डेटा', mr: 'डेमो मंडी डेटा', en: 'Demo market data — not an official quote' }, language)}
+            {localize({ hi: 'मंडी डेटा उपलब्ध नहीं है — आधिकारिक भाव नहीं', mr: 'बाजारभाव उपलब्ध नाही — हा अधिकृत दर नाही', en: 'Market data unavailable — not an official quote' }, language)}
           </p>
           <p className="mt-1 text-sm text-amber-800">
             {localize(
@@ -235,7 +235,7 @@ export default function MandiScreen() {
           </button>
           <span className="rounded-full bg-[#edf6ec] px-3 py-2 text-xs font-black text-[#1a3d1a]">
             {isDemo
-              ? localize({ hi: 'डेमो भाव', mr: 'डेमो दर', en: 'Demo rate' }, language)
+              ? localize({ hi: 'भाव उपलब्ध नहीं', mr: 'दर उपलब्ध नाही', en: 'Rate unavailable' }, language)
               : localize({ hi: 'रिपोर्ट किया गया भाव', mr: 'नोंदवलेला दर', en: 'Latest reported rate' }, language)}
           </span>
         </div>

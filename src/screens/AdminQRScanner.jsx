@@ -39,7 +39,7 @@ export default function AdminQRScanner() {
 
       // Check BarcodeDetector support
       if (!('BarcodeDetector' in window)) {
-        setCameraError('QR scanning requires Chrome/Edge 90+. Use Demo Scan below to test.');
+        setCameraError('QR scanning requires Chrome or Edge version 90 or later.');
         return;
       }
 
@@ -187,7 +187,7 @@ export default function AdminQRScanner() {
               className="w-full rounded-2xl border border-slate-700 bg-slate-800 py-4 font-bold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
             >
               <ScanLine size={16} className="inline mr-2" />
-              Demo Scan (Sample Farmer QR)
+              Sample Farmer QR
             </button>
           </>
         ) : (

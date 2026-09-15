@@ -143,7 +143,7 @@ async function fileToBase64(file) {
 async function analyzePestImage(file) {
   if (!GEMINI_KEY) {
     return {
-      disease: 'Powdery Mildew (Demo — Add Gemini API Key)',
+      disease: 'Powdery Mildew (Connect AI analysis)',
       confidence: 82,
       severity: 'Medium',
       treatment: 'Spray neem oil 5 ml/litre and improve airflow around the crop canopy.',

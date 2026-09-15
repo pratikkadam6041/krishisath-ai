@@ -114,7 +114,7 @@ function RLRecommendationBanner({ zones, weather, language }) {
 }
 
 function SatelliteMap({ onClose }) {
-  // Demo location uses Pune until a precise farm-boundary coordinate is added
+  // Pune is used until a precise farm-boundary coordinate is added
   // during onboarding. This remains a read-only visual layer and never sends
   // a control command.
   const mapUrl = 'https://www.google.com/maps?q=18.5204,73.8567&z=15&t=k&output=embed';
@@ -122,7 +122,7 @@ function SatelliteMap({ onClose }) {
     <div className="absolute inset-0 z-50 bg-[#081014]">
       <iframe title="Satellite view of the farm area" src={mapUrl} className="h-full w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
       <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-3 rounded-2xl border border-white/15 bg-slate-950/90 px-4 py-3 text-white backdrop-blur">
-        <div><p className="flex items-center gap-2 text-sm font-black"><Satellite size={17} className="text-emerald-400" /> Geospatial satellite view</p><p className="mt-0.5 text-xs text-slate-400">Pune demo boundary · read-only planning layer</p></div>
+        <div><p className="flex items-center gap-2 text-sm font-black"><Satellite size={17} className="text-emerald-400" /> Geospatial satellite view</p><p className="mt-0.5 text-xs text-slate-400">Pune planning boundary · read-only layer</p></div>
         <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white" aria-label="Close satellite map"><X size={19} /></button>
       </div>
     </div>

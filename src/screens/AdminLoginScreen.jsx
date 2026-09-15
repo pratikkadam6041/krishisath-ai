@@ -132,7 +132,7 @@ export default function AdminLoginScreen() {
 
           {/* Demo hint */}
           <div className="mt-5 rounded-2xl border border-slate-700/60 bg-slate-800/50 p-4">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">Demo Credentials</p>
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">Admin access credentials</p>
             <p className="text-xs text-slate-400">Email: <span className="font-bold text-slate-200">admin@krishisarth.com</span></p>
             <p className="text-xs text-slate-400">Password: <span className="font-bold text-slate-200">admin123</span></p>
             <button

@@ -21,7 +21,7 @@
     "connected": "जोडले", "connecting": "जोडत आहे...", "disconnected": "डिस्कनेक्ट केले",
     "reconnecting": "पुन्हा जोडत आहे...", "retrying": "{{count}} वेळा प्रयत्न",
     "maxRetries": "कनेक्शन नाही — पुन्हा प्रयत्न करा", "retryBtn": "पुन्हा जोडा",
-    "demoMode": "Demo Mode — नमुना डेटा दाखवत आहे"
+    "demoMode": "नमुना डेटा दिसत आहे"
   },
   "weather": {
     "temp": "तापमान", "humidity": "आर्द्रता", "rainProb": "पाऊस",

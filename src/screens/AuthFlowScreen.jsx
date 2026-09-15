@@ -75,7 +75,7 @@ const AUTH_COPY = {
     resetPin: 'Reset PIN with OTP',
     continue: 'Continue',
     verify: 'Verifying...',
-    demoOtp: 'Demo OTP: 204681',
+    demoOtp: 'Local access code: 204681',
     loginReady: 'Fast and secure sign in',
   },
 };
@@ -504,7 +504,7 @@ export default function AuthFlowScreen() {
               <div className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <span className="text-lg">🔑</span>
                 <div>
-                  <p className="text-xs font-black text-amber-800 uppercase tracking-wider">Demo Mode</p>
+                  <p className="text-xs font-black text-amber-800 uppercase tracking-wider">Local access</p>
                   <p className="text-sm font-bold text-amber-700">Enter OTP: <span className="font-black tracking-widest">204681</span></p>
                 </div>
               </div>

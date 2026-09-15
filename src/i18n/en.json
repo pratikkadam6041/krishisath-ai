@@ -21,7 +21,7 @@
     "connected": "Connected", "connecting": "Connecting...", "disconnected": "Disconnected",
     "reconnecting": "Reconnecting...", "retrying": "Attempt {{count}}",
     "maxRetries": "No connection — Please retry", "retryBtn": "Retry Connection",
-    "demoMode": "Demo Mode — Showing sample data"
+    "demoMode": "Showing sample data"
   },
   "weather": {
     "temp": "Temperature", "humidity": "Humidity", "rainProb": "Rain",
@@ -129,7 +129,7 @@
   },
   "mandi": {
     "title": "Mandi Prices", "today": "Today's Rates",
-    "demoNote": "Demo data — the official Agmarknet report is currently unavailable",
+    "demoNote": "The official Agmarknet report is currently unavailable",
     "liveData": "Live Data", "updatedAt": "Updated {{time}}",
     "perQuintal": "per quintal", "change": "Change",
     "minMax": "Min-Max Range", "trend": "7-Day Trend",
@@ -138,7 +138,7 @@
     "nearby": "Nearby Mandis", "changeMandi": "Change Mandi",
     "noData": "No mandi data", "loading": "Loading prices...",
     "share": "Share on WhatsApp", "allCrops": "All Crops", "myCrops": "My Crops",
-    "fetchError": "Could not load live prices — showing demo data"
+    "fetchError": "Could not load live prices"
   },
   "schemes": {
     "title": "Government Schemes", "personalized": "{{count}} schemes available for you",

@@ -18,7 +18,7 @@ function StatusPill({ children, tone = 'slate' }) {
  */
 export default function FutureFarmIntelligence({ language, onOpenSatellite }) {
   const [wildlifeCheckRunning, setWildlifeCheckRunning] = useState(false);
-  const [wildlifeDemoAlert, setWildlifeDemoAlert] = useState(false);
+  const [wildlifePreviewAlert, setWildlifePreviewAlert] = useState(false);
   const [solarMode, setSolarMode] = useState('day');
 
   const solar = useMemo(
@@ -28,11 +28,11 @@ export default function FutureFarmIntelligence({ language, onOpenSatellite }) {
     [solarMode]
   );
 
-  const runWildlifeDemo = () => {
+  const runWildlifePreview = () => {
     setWildlifeCheckRunning(true);
     window.setTimeout(() => {
       setWildlifeCheckRunning(false);
-      setWildlifeDemoAlert((current) => !current);
+      setWildlifePreviewAlert((current) => !current);
     }, 700);
   };
 
@@ -43,23 +43,23 @@ export default function FutureFarmIntelligence({ language, onOpenSatellite }) {
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">Future scope</p>
           <h2 className="mt-1 text-lg font-black text-text-primary dark:text-white">Farm protection & clean energy</h2>
         </div>
-        <StatusPill tone="slate">Pitch demo</StatusPill>
+        <StatusPill tone="slate">Planned feature</StatusPill>
       </div>
 
-      <article className={`overflow-hidden rounded-[26px] border p-4 shadow-sm transition ${wildlifeDemoAlert ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'}`}>
+      <article className={`overflow-hidden rounded-[26px] border p-4 shadow-sm transition ${wildlifePreviewAlert ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${wildlifeDemoAlert ? 'bg-amber-500 text-white' : 'bg-slate-900 text-emerald-300'}`}>
+            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${wildlifePreviewAlert ? 'bg-amber-500 text-white' : 'bg-slate-900 text-emerald-300'}`}>
               <ShieldAlert size={21} />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-black text-text-primary dark:text-white">WildGuard AI</h3>
-                <StatusPill tone={wildlifeDemoAlert ? 'amber' : 'emerald'}>{wildlifeDemoAlert ? 'Review needed' : 'Perimeter ready'}</StatusPill>
+                <StatusPill tone={wildlifePreviewAlert ? 'amber' : 'emerald'}>{wildlifePreviewAlert ? 'Review needed' : 'Perimeter ready'}</StatusPill>
               </div>
               <p className="mt-1 text-sm leading-5 text-text-secondary dark:text-slate-300">
-                {wildlifeDemoAlert
-                  ? 'Demo event: movement pattern near the north boundary. Camera verification would be requested before alerting the farmer.'
+                {wildlifePreviewAlert
+                  ? 'Preview alert: movement pattern near the north boundary. Camera verification would be requested before alerting the farmer.'
                   : 'Future thermal, acoustic and camera sensor fusion for elephants, boar and stray-animal damage alerts.'}
               </p>
             </div>
@@ -67,8 +67,8 @@ export default function FutureFarmIntelligence({ language, onOpenSatellite }) {
         </div>
         <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-black/[0.035] px-3 py-2.5 dark:bg-white/5">
           <span className="inline-flex items-center gap-2 text-xs font-bold text-text-secondary dark:text-slate-300"><Camera size={14} /> No field sensor connected</span>
-          <button type="button" onClick={runWildlifeDemo} className="inline-flex min-h-9 items-center gap-1 rounded-xl bg-slate-900 px-3 text-xs font-black text-white transition active:scale-95">
-            {wildlifeCheckRunning ? 'Checking…' : wildlifeDemoAlert ? 'Clear demo' : 'Run demo'} <ChevronRight size={14} />
+          <button type="button" onClick={runWildlifePreview} className="inline-flex min-h-9 items-center gap-1 rounded-xl bg-slate-900 px-3 text-xs font-black text-white transition active:scale-95">
+            {wildlifeCheckRunning ? 'Checking…' : wildlifePreviewAlert ? 'Clear alert' : 'Preview alert'} <ChevronRight size={14} />
           </button>
         </div>
       </article>
@@ -89,7 +89,7 @@ export default function FutureFarmIntelligence({ language, onOpenSatellite }) {
           <div className="rounded-2xl bg-white/75 p-3"><BatteryCharging size={15} className="text-emerald-600" /><p className="mt-2 text-base font-black text-text-primary">{solar.battery}</p><p className="text-[10px] font-bold uppercase tracking-wide text-text-secondary">Battery</p></div>
           <div className="rounded-2xl bg-white/75 p-3"><Waves size={15} className="text-sky-600" /><p className="mt-2 text-sm font-black text-text-primary">{solar.load}</p><p className="text-[10px] font-bold uppercase tracking-wide text-text-secondary">Load plan</p></div>
         </div>
-        <button type="button" onClick={onOpenSatellite} className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-2xl bg-amber-950 px-4 text-sm font-black text-white"><SunMedium size={16} /> View solar planning on satellite map</button>
+        <button type="button" onClick={onOpenSatellite} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-amber-800 bg-amber-700 px-4 text-sm font-black text-white shadow-[0_10px_24px_rgba(146,64,14,0.32)] transition hover:bg-amber-800 focus:outline-none focus:ring-4 focus:ring-amber-300 active:scale-[0.99]"><SunMedium size={17} /> Open solar plan on satellite map <ChevronRight size={16} /></button>
       </article>
     </section>
   );

@@ -1068,7 +1068,7 @@ function ChatBotPanel({ embedded = false, closeChat = () => {}, startVoice = fal
 
             <div className="mt-6 w-full max-w-md rounded-[24px] border border-emerald-300/15 bg-white/[0.08] p-4 text-left shadow-2xl backdrop-blur">
               <p className="text-sm font-black text-emerald-200">
-                {language === 'mr' ? 'डेमोसाठी असे बोला' : language === 'en' ? 'Say this for demo' : 'डेमो के लिए ऐसे बोलें'}
+                {language === 'mr' ? 'असे बोलून पाहा' : language === 'en' ? 'Try saying' : 'ऐसे बोलकर देखें'}
               </p>
               <div className="mt-3 grid gap-2">
                 {(VOICE_COMMAND_EXAMPLES[language] || VOICE_COMMAND_EXAMPLES.hi).map((example) => (

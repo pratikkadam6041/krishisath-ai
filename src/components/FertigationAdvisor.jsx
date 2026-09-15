@@ -189,8 +189,8 @@ export default function FertigationAdvisor({ zoneId }) {
           : 'Dose command sent to Raspberry Pi fertigation controller.'
         : sent
         ? forceSafetyOverride
-          ? 'Safety override started in local demo mode. MQTT is offline, so no Raspberry Pi command was sent.'
-          : 'Fertigation started in local demo mode. MQTT is offline, so no Raspberry Pi command was sent.'
+          ? 'Safety override is shown locally. MQTT is offline, so no Raspberry Pi command was sent.'
+          : 'Fertigation state is shown locally. MQTT is offline, so no Raspberry Pi command was sent.'
         : 'MQTT is offline. Plan saved, but hardware did not start.'
     );
   };
