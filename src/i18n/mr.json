@@ -129,7 +129,7 @@
   },
   "mandi": {
     "title": "बाजारभाव", "today": "आजचे भाव",
-    "demoNote": "नमुना डेटा — लाईव्ह किमतींसाठी VITE_DATA_GOV_API_KEY जोडा",
+    "demoNote": "नमुना डेटा — अधिकृत Agmarknet अहवाल सध्या उपलब्ध नाही",
     "liveData": "लाईव्ह डेटा", "updatedAt": "{{time}} ला अपडेट केले",
     "perQuintal": "प्रति क्विंटल", "change": "बदल",
     "minMax": "किमान-कमाल रेंज", "trend": "७ दिवसांचा कल",

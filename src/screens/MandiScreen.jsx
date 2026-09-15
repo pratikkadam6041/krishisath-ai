@@ -178,9 +178,9 @@ export default function MandiScreen() {
           <p className="mt-1 text-sm text-amber-800">
             {localize(
               {
-                hi: 'सही पुणे भाव के लिए data.gov.in कुंजी सेट करके रिफ्रेश करें।',
-                mr: 'अचूक पुणे दरासाठी data.gov.in की सेट करून रिफ्रेश करा.',
-                en: 'Configure the data.gov.in key, then refresh before using a rate for a decision.',
+                hi: 'आधिकारिक Agmarknet रिपोर्ट अभी उपलब्ध नहीं है। इंटरनेट जांचें और रीफ्रेश करें।',
+                mr: 'अधिकृत Agmarknet अहवाल सध्या उपलब्ध नाही. इंटरनेट तपासा आणि रिफ्रेश करा.',
+                en: 'The official Agmarknet report is unavailable. Check the connection and refresh before making a decision.',
               },
               language
             )}

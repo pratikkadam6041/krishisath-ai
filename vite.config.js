@@ -43,6 +43,61 @@ const localDatabasePlugin = (openAiKey) => ({
   name: 'local-db-api',
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
+      // Agmarknet's current public API rejects browser CORS requests. Keep the
+      // browser on the same origin and add the headers used by its own site.
+      // This route deliberately accepts only the fixed daily-report operation;
+      // it is not a general-purpose HTTP proxy.
+      if (req.url?.split('?')[0] === '/api/mandi-report' && req.method === 'POST') {
+        let body = '';
+        req.on('data', (chunk) => { body += chunk.toString(); });
+        req.on('end', async () => {
+          try {
+            const payload = JSON.parse(body || '{}');
+            const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(String(payload.date || ''));
+            const marketIds = Array.isArray(payload.marketIds)
+              ? payload.marketIds.map(Number).filter(Number.isInteger).slice(0, 12)
+              : [];
+            const stateIds = Array.isArray(payload.stateIds)
+              ? payload.stateIds.map(Number).filter(Number.isInteger).slice(0, 4)
+              : [];
+
+            if (!isIsoDate || marketIds.length === 0 || stateIds.length === 0) {
+              throw new Error('A report date, market IDs, and state IDs are required.');
+            }
+
+            const upstream = await fetch(
+              'https://api.agmarknet.gov.in/v1/prices-and-arrivals/market-report/daily',
+              {
+                method: 'POST',
+                headers: {
+                  Accept: 'application/json, text/plain, */*',
+                  'Content-Type': 'application/json',
+                  Origin: 'https://agmarknet.gov.in',
+                  Referer: 'https://agmarknet.gov.in/',
+                  'User-Agent': 'KrishiSarth/2.0',
+                },
+                body: JSON.stringify({
+                  date: payload.date,
+                  marketIds,
+                  stateIds,
+                  includeExcel: false,
+                }),
+                signal: AbortSignal.timeout(25_000),
+              }
+            );
+            const responseText = await upstream.text();
+            res.statusCode = upstream.status;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(responseText);
+          } catch (error) {
+            res.statusCode = 502;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: error.message || 'Unable to fetch the Agmarknet report.' }));
+          }
+        });
+        return;
+      }
+
       if (req.url === '/api/realtime/connect' && req.method === 'POST') {
         if (!openAiKey) {
           res.statusCode = 503;

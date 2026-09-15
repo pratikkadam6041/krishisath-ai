@@ -2,7 +2,8 @@
  * Live API Services for KrishiSarth
  *
  * Weather  → Open-Meteo (free, no key, GPS-based)
- * Mandi    → data.gov.in Agmarknet API (free key) + static fallback
+ * Mandi    → official Agmarknet 2 daily-report API, served through the local
+ *            same-origin route because the government API disallows browser CORS
  * Map      → Leaflet CDN (OpenStreetMap tiles, no key)
  */
 
@@ -134,94 +135,109 @@ export function getUserLocation() {
   });
 }
 
-// ─── Mandi Price API (data.gov.in Agmarknet) ─────────────────────────────────
-const DATA_GOV_KEY = import.meta.env.VITE_DATA_GOV_API_KEY;
-const AGMARKNET_RESOURCE_ID = '9ef84268-d588-465a-a308-a864a43d0070';
+// ─── Mandi Price API (official Agmarknet) ────────────────────────────────────
+// In a hosted deployment VITE_MANDI_API_URL must point to an equivalent
+// server-side route. The Vite route powers the local demo and never exposes a
+// credential to the browser.
+const MANDI_REPORT_URL = import.meta.env.VITE_MANDI_API_URL || '/api/mandi-report';
 
 const CACHE_KEY = 'ks_mandi_cache';
 
-export async function fetchMandiPrices({
-  state = 'Maharashtra',
-  commodities = [],
-  market = '',
-  limit = 20,
-} = {}) {
-  // Try live API if key is available
-  if (DATA_GOV_KEY) {
-    try {
-      const url = new URL(`https://api.data.gov.in/resource/${AGMARKNET_RESOURCE_ID}`);
-      url.searchParams.set('api-key', DATA_GOV_KEY);
-      url.searchParams.set('format', 'json');
-      url.searchParams.set('limit', limit);
-      // The current Agmarknet resource exposes its indexed state field as
-      // `state.keyword`.  Using the display-label casing (for example
-      // `filters[State]`) silently returns no Pune records on the live API.
-      url.searchParams.set('filters[state.keyword]', state);
-      if (market) {
-        url.searchParams.set('filters[market]', market);
-      }
-      // Filter by commodities if specified
-      if (commodities.length === 1) {
-        url.searchParams.set('filters[commodity]', commodities[0]);
-      }
+function dateInIndia(daysBack = 0) {
+  const value = new Date(Date.now() - daysBack * 86_400_000);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .formatToParts(value)
+    .reduce((result, part) => ({ ...result, [part.type]: part.value }), {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
 
-      const res = await fetch(url.toString());
-      if (!res.ok) throw new Error(`Agmarknet API ${res.status}`);
-      const json = await res.json();
+function displayDate(isoDate) {
+  const [year, month, day] = String(isoDate).split('-');
+  return year && month && day ? `${day}/${month}/${year}` : isoDate;
+}
 
-      if (json.records && json.records.length > 0) {
-        const formattedRecords = json.records.map((r) => ({
-          commodity: r.commodity || r.Commodity,
-          variety: r.variety || r.Variety || 'Local',
-          market: r.market || r.Market,
-          district: r.district || r.District,
-          state: r.state || r.State,
-          modal_price: String(r.modal_price || r['Modal Price (Rs./Quintal)'] || 0),
-          min_price: String(r.min_price || r['Min Price (Rs./Quintal)'] || 0),
-          max_price: String(r.max_price || r['Max Price (Rs./Quintal)'] || 0),
-          arrival_date: r.arrival_date || r['Arrival Date'] || new Date().toLocaleDateString('en-IN'),
-        }));
-        
-        // Cache the result
-        localStorage.setItem(`${CACHE_KEY}_${market}_${commodities.join('_')}`, JSON.stringify({
-          records: formattedRecords,
-          fetchedAt: Date.now()
-        }));
+function flattenAgmarknetReport(report, isoDate) {
+  return (report?.states || []).flatMap((state) =>
+    (state.markets || []).flatMap((market) =>
+      (market.commodities || []).flatMap((commodity) =>
+        (commodity.data || []).map((row) => ({
+          commodity: commodity.commodityName,
+          variety: row.variety || 'Local',
+          market: row.marketCenter || market.marketName,
+          state: state.stateName,
+          modal_price: String(row.modalPrice ?? 0),
+          min_price: String(row.minimumPrice ?? 0),
+          max_price: String(row.maximumPrice ?? 0),
+          arrival_date: displayDate(isoDate),
+        }))
+      )
+    )
+  );
+}
 
-        return {
-          records: formattedRecords,
-          isLive: true,
-          fetchedAt: Date.now(),
-          error: null,
-        };
-      }
-      throw new Error('No records returned');
-    } catch (err) {
-      console.warn('[Mandi] Live API failed, attempting offline cache:', err.message);
+/**
+ * Fetch the newest available official report for each requested APMC.
+ * Markets often publish after trading closes, so a blank current-day report
+ * falls back to the most recent report within the last seven days. Its date is
+ * retained on every record; no stale rate is ever labelled as today's price.
+ */
+export async function fetchMandiMarketReports({ marketIds = [], stateIds = [20], daysBack = 7 } = {}) {
+  const cacheKey = `${CACHE_KEY}_agmarknet_${marketIds.join('_')}`;
+  const recordsByMarketId = {};
+  let lastError = null;
+
+  try {
+    for (let daysAgo = 0; daysAgo <= daysBack; daysAgo += 1) {
+      const isoDate = dateInIndia(daysAgo);
+      const res = await fetch(MANDI_REPORT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: isoDate, marketIds, stateIds }),
+      });
+      if (!res.ok) throw new Error(`Agmarknet report ${res.status}`);
+
+      const report = await res.json();
+      const rows = flattenAgmarknetReport(report, isoDate);
+      rows.forEach((row) => {
+        const marketId = (report.states || [])
+          .flatMap((state) => state.markets || [])
+          .find((market) => String(market.marketName || '').trim() === String(row.market || '').trim())?.marketId;
+        if (marketId && !recordsByMarketId[marketId]) recordsByMarketId[marketId] = [];
+        if (marketId) recordsByMarketId[marketId].push(row);
+      });
+
     }
+
+    localStorage.setItem(cacheKey, JSON.stringify({ recordsByMarketId, fetchedAt: Date.now() }));
+    return { recordsByMarketId, isLive: true, fetchedAt: Date.now(), error: null };
+  } catch (error) {
+    lastError = error;
+    console.warn('[Mandi] Official Agmarknet request failed, attempting cache:', error.message);
   }
 
-  // Attempt Offline Cache
-  const cachedDataStr = localStorage.getItem(`${CACHE_KEY}_${market}_${commodities.join('_')}`);
-  if (cachedDataStr) {
-    try {
-      const cachedData = JSON.parse(cachedDataStr);
+  try {
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+    if (cached?.recordsByMarketId) {
       return {
-        records: cachedData.records,
+        recordsByMarketId: cached.recordsByMarketId,
         isLive: false,
-        fetchedAt: cachedData.fetchedAt,
-        error: 'Offline mode: Showing cached data',
+        fetchedAt: cached.fetchedAt,
+        error: 'Offline mode: Showing the last cached official report.',
       };
-    } catch {
-      console.warn('Cache parsing failed');
     }
+  } catch {
+    // A corrupt cache is treated as unavailable data.
   }
 
-  // No data available
   return {
-    records: [],
+    recordsByMarketId: {},
     isLive: false,
     fetchedAt: Date.now(),
-    error: 'Live API unavailable and no offline cache. Please check VITE_DATA_GOV_API_KEY and your internet.',
+    error: `Official Mandi report unavailable: ${lastError?.message || 'unknown error'}`,
   };
 }

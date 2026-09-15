@@ -129,7 +129,7 @@
   },
   "mandi": {
     "title": "Mandi Prices", "today": "Today's Rates",
-    "demoNote": "Demo Data — Add VITE_DATA_GOV_API_KEY for live prices",
+    "demoNote": "Demo data — the official Agmarknet report is currently unavailable",
     "liveData": "Live Data", "updatedAt": "Updated {{time}}",
     "perQuintal": "per quintal", "change": "Change",
     "minMax": "Min-Max Range", "trend": "7-Day Trend",

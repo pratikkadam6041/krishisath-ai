@@ -129,17 +129,17 @@ export function useVoiceRecognition({
     return recognition;
   }, [emitError, language, onFinalTranscript, onInterimTranscript]);
 
-  const chooseSpeechVoice = useCallback(() => {
+  const chooseSpeechVoice = useCallback((targetLanguage = language) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return null;
 
     const voices = window.speechSynthesis.getVoices();
     if (voices.length) voicesRef.current = voices;
 
     const availableVoices = voices.length ? voices : voicesRef.current;
-    const preferredLang = getSpeechLang(language);
-    const fallbackLangs = language === 'mr'
+    const preferredLang = getSpeechLang(targetLanguage);
+    const fallbackLangs = targetLanguage === 'mr'
       ? ['mr-IN', 'mr', 'hi-IN', 'hi']
-      : language === 'hi'
+      : targetLanguage === 'hi'
         ? ['hi-IN', 'hi']
         : ['en-IN', 'en-US', 'en'];
 
@@ -195,7 +195,7 @@ export function useVoiceRecognition({
   }, [isArmed, isListening, startListening, supported]);
 
   const speak = useCallback(
-    (text, enabled = true) =>
+    (text, enabled = true, targetLanguage = language) =>
       new Promise((resolve) => {
         if (!enabled || typeof window === 'undefined' || !window.speechSynthesis) {
           resolve();
@@ -203,8 +203,8 @@ export function useVoiceRecognition({
         }
 
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = getSpeechLang(language);
-        const voice = chooseSpeechVoice();
+        utterance.lang = getSpeechLang(targetLanguage);
+        const voice = chooseSpeechVoice(targetLanguage);
         if (voice) {
           utterance.voice = voice;
           utterance.lang = voice.lang || utterance.lang;

@@ -1,22 +1,22 @@
 /**
- * Live mandi prices per APMC — Agmarknet (data.gov.in) with distinct market data.
+ * Live mandi prices per APMC — official Agmarknet daily reports.
  */
 
-import { fetchMandiPrices } from '../api/liveServices.js';
+import { fetchMandiMarketReports } from '../api/liveServices.js';
 import { getCropMeta } from '../data/appContent.js';
 
 const MH_MARKETS = [
   // A Pune-wide query includes Moshi and Pimpri, which creates duplicate
   // commodity cards. Use one explicitly named APMC for the Pune tab so every
   // displayed price has a single, traceable official source.
-  { id: 'pune', name: 'Pune APMC (Moshi)', marketFilter: 'Pune(Moshi)', distance: '12 km' },
-  { id: 'nashik', name: 'Nashik APMC', marketFilter: 'Nashik', distance: '214 km' },
-  { id: 'nagpur', name: 'Nagpur APMC', marketFilter: 'Nagpur', distance: '720 km' },
-  { id: 'solapur', name: 'Solapur APMC', marketFilter: 'Solapur', distance: '249 km' },
-  { id: 'akola', name: 'Akola APMC', marketFilter: 'Akola', distance: '310 km' },
-  { id: 'latur', name: 'Latur APMC', marketFilter: 'Latur', distance: '380 km' },
-  { id: 'kolhapur', name: 'Kolhapur APMC', marketFilter: 'Kolhapur', distance: '230 km' },
-  { id: 'aurangabad', name: 'Aurangabad APMC', marketFilter: 'Aurangabad', distance: '235 km' },
+  { id: 'pune', name: 'Pune APMC (Moshi)', marketId: 3450, distance: '12 km' },
+  { id: 'nashik', name: 'Nashik APMC (Devlali)', marketId: 2140, distance: '214 km' },
+  { id: 'nagpur', name: 'Nagpur APMC', marketId: 155, distance: '720 km' },
+  { id: 'solapur', name: 'Solapur APMC', marketId: 168, distance: '249 km' },
+  { id: 'akola', name: 'Akola APMC', marketId: 146, distance: '310 km' },
+  { id: 'latur', name: 'Latur APMC', marketId: 153, distance: '380 km' },
+  { id: 'kolhapur', name: 'Kolhapur APMC', marketId: 152, distance: '230 km' },
+  { id: 'aurangabad', name: 'Chhatrapati Sambhajinagar APMC', marketId: 557, distance: '235 km' },
 ];
 
 const COMMODITY_MAP = {
@@ -86,32 +86,30 @@ function distinctCommodities(records = []) {
   return [...representativeByCommodity.values()];
 }
 
+function historyForCommodity(records = [], commodity = '') {
+  const sampleByDay = new Map();
+  records
+    .filter((record) => slugify(record.commodity) === slugify(commodity))
+    .sort((left, right) => arrivalTime(left.arrival_date) - arrivalTime(right.arrival_date))
+    .forEach((record) => {
+      const price = Math.round(Number(record.modal_price) || 0);
+      if (price > 0) sampleByDay.set(record.arrival_date, price);
+    });
+  return [...sampleByDay.values()].slice(-7);
+}
+
 /** Merge API records into per-market crop lists */
 export async function refreshAllMandiData({ state = 'Maharashtra', cropIds = [] } = {}) {
   const commodities = cropIds.length
     ? cropIds.map((id) => COMMODITY_MAP[id] || id)
     : Object.values(COMMODITY_MAP);
 
-  const marketResults = await Promise.all(
-    MH_MARKETS.map(async (m) => {
-      const { records, isLive, error } = await fetchMandiPrices({
-        state,
-        limit: 80,
-        market: m.marketFilter,
-      });
+  const { recordsByMarketId, isLive, error } = await fetchMandiMarketReports({
+    marketIds: MH_MARKETS.map((market) => market.marketId),
+  });
 
-      let filtered = records || [];
-      if (m.marketFilter) {
-        const key = m.marketFilter.toLowerCase();
-        const byMarket = filtered.filter(
-          (r) =>
-            String(r.market || r.district || '')
-              .toLowerCase()
-              .includes(key) || String(r.district || '').toLowerCase().includes(key)
-        );
-        if (byMarket.length > 0) filtered = byMarket;
-      }
-
+  const marketResults = MH_MARKETS.map((m) => {
+      const filtered = recordsByMarketId[m.marketId] || [];
       const crops = distinctCommodities(filtered)
         .filter((r) =>
           commodities.length === 0
@@ -120,11 +118,15 @@ export async function refreshAllMandiData({ state = 'Maharashtra', cropIds = [] 
                 (c) => String(r.commodity).toLowerCase() === c.toLowerCase()
               )
         )
-        .map((r) => recordToCrop(r, m.name));
-
+        .map((r) => ({
+          ...recordToCrop(r, m.name),
+          // These are official daily observations collected above, not a
+          // simulated graph. A chart is shown only when the market supplied
+          // at least two reported trading days for that commodity.
+          history7d: historyForCommodity(filtered, r.commodity),
+        }));
       return { market: m, crops, isLive, error };
-    })
-  );
+    });
 
   const anyLive = marketResults.some((r) => r.isLive);
   const primary = marketResults[0]?.crops?.length
